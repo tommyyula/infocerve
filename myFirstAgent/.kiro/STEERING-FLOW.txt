@@ -1,0 +1,127 @@
+================================================================================
+                         Steering 交互方式
+================================================================================
+
+Steering 是 Kiro 的规则引导系统，用于在对话中自动或手动加载规范文档。
+
+[如何查看当前 steering 规则]
+  1. 打开 .kiro/steering/ 目录
+  2. 查看各 .md 文件的 front-matter 配置
+
+[如何新增 steering 规则]
+  1. 在 .kiro/steering/ 目录下创建 .md 文件
+  2. 在文件开头添加 front-matter 配置触发方式
+
+[三种触发方式]
+
+  Always（始终加载）:
+  ---
+  inclusion: always
+  ---
+  # 规则内容...
+
+  FileMatch（文件匹配时加载）:
+  ---
+  inclusion: fileMatch
+  fileMatchPattern: "**/*.java"
+  ---
+  # 规则内容...
+
+  Manual（手动引用）:
+  ---
+  inclusion: manual
+  ---
+  # 规则内容...
+  用户在对话中输入 #文件名 即可引用
+
+[如何修改 steering 规则]
+  直接编辑 .kiro/steering/ 目录下的 .md 文件
+  或告诉 Kiro "优化一下 steering 规则"
+
+[常用命令]
+  #文件名          → 手动引用某个 steering 规则
+  #Codebase        → 让 Kiro 扫描整个代码库
+  #File            → 引用特定文件
+  #Folder          → 引用特定目录
+
+
+================================================================================
+                         触发机制
+================================================================================
+
+[Always 加载]
+  00-COMMON-GUIDELINES.md (~1.2KB)
+  └── 场景判断表 + 核心原则 + MCP 工具指南
+
+[FileMatch 自动加载] - 编辑特定文件时触发
+  *.java                    → 03-JAVA-CHECKLIST + 99-ALIBABA
+  application/**/*.java     → 05-REPOSITORY-RULES + ddd-rich-domain-model
+  domain/**/*.java          → 05-REPOSITORY-RULES + ddd-rich-domain-model
+  repository/**/*.java      → 05-REPOSITORY-RULES
+  gateway/**/*.java         → 99-REACTOR
+  *Tree*.java / *Menu*.java → tree-structure-best-practices
+  requirements.md           → 01-SPEC-GUIDELINES
+  design.md                 → 01-SPEC-GUIDELINES + 02-DESIGN-RULES
+
+[Manual 手动引用] - 用户或 Kiro 主动引用
+  #CRITICAL-REMINDERS       → 编码规则详情 (~12KB)
+  #04-COMMON-REFLECTION     → 事后反思规范
+  #task-archive-guide       → 任务归档指南
+
+[MCP 工具] - 开发时主动使用
+  *mysql_query / *db*       → 查表结构、验证数据
+  *api*fox* / *oas*         → 查接口规范
+  *browser* / *playwright*  → 调试前端
+
+
+================================================================================
+                         典型场景示例
+================================================================================
+
+场景1: 用户问 "DDD 是什么"
+─────────────────────────────────────────
+加载: 00-COMMON-GUIDELINES (1.2KB)
+判断: 聊天问答
+行为: 直接回答
+总计: 1.2KB
+
+场景2: 用户说 "帮我改一下 UserService.java 的这个方法"
+─────────────────────────────────────────
+加载: 00-COMMON-GUIDELINES (1.2KB)
+     + 03-JAVA-CHECKLIST (2KB)
+     + 99-ALIBABA (1KB)
+     + 05-REPOSITORY-RULES (2KB)
+     + ddd-rich-domain-model (3KB)
+判断: 简单修改
+行为: 直接改，遵守 Java 规范
+MCP工具: 可用数据库工具验证数据变更
+总计: 9.2KB
+
+场景3: 用户说 "我要开发一个新的库存管理功能"
+─────────────────────────────────────────
+加载: 00-COMMON-GUIDELINES (1.2KB)
+判断: 复杂开发
+行为: 进入3阶段流程
+  阶段1 → research_mode + process_thought 思考
+        → 与用户确认需求
+        → 记录到 requirements.md + design.md
+  阶段2 → plan → analyze → reflect → split_tasks
+        → execute_task → verify_task(≥80分)
+  阶段3 → 用户测试反馈 → split_tasks(append) 追加任务
+MCP工具: 用数据库工具查表结构，用 API 工具查接口规范
+
+场景4: 用户说 "测试发现有 bug，xxx 功能不对"
+─────────────────────────────────────────
+加载: 00-COMMON-GUIDELINES (1.2KB)
+判断: 阶段3 迭代反馈
+行为: research_mode 分析问题
+     → 与用户确认修复方案
+     → split_tasks(updateMode="append") 追加任务
+     → execute_task → verify_task(≥80分)
+MCP工具: 用数据库工具验证数据，用浏览器工具调试前端
+
+场景5: 用户说 "优化一下 steering 规则"
+─────────────────────────────────────────
+加载: 00-COMMON-GUIDELINES (1.2KB)
+判断: 元任务
+行为: research_mode → process_thought → 迭代优化

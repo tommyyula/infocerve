@@ -1,0 +1,36 @@
+@startuml 库存入库流程
+!theme plain
+title 库存入库流程
+
+|操作员(PDA)|
+start
+:扫描收货单;
+
+|系统|
+:生成收货任务;
+
+|操作员(PDA)|
+:扫描商品/LP;
+:确认收货数量;
+
+|系统|
+:创建库存记录\n(status=RECEIVING);
+:创建LP记录\n(status=RECEIVING);
+:记录库存日志(INSERT);
+:记录库存活动(RECEIVE);
+:生成上架任务;
+
+|操作员(PDA)|
+:扫描LP;
+:扫描目标库位;
+
+|系统|
+:库存移动\n(locationId变更);
+:更新库存状态\n(RECEIVING -> OPEN);
+:更新LP状态\n(RECEIVING -> IN_STOCK);
+:记录库存活动(PUT_AWAY);
+
+|操作员(PDA)|
+stop
+
+@enduml

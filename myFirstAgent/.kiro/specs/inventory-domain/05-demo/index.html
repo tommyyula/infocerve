@@ -1,0 +1,1919 @@
+﻿
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WMS-Lite 库存领域 Demo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+        :root {
+            --bg: #f5f7fb;
+            --bg-strong: #eef2f8;
+            --panel: #ffffff;
+            --ink: #1f2a37;
+            --muted: #6b7280;
+            --border: #e6e9ef;
+            --accent: #2f6bff;
+            --accent-strong: #1f55e6;
+            --accent-soft: #e9f0ff;
+            --tag-info: #2563eb;
+            --tag-warning: #d97706;
+            --tag-success: #16a34a;
+            --tag-danger: #dc2626;
+            --shadow: 0 12px 30px rgba(31, 42, 55, 0.08);
+            --radius: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Manrope', 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+        .container { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 260px;
+            background: #ffffff;
+            color: var(--ink);
+            border-right: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+        .logo {
+            padding: 18px 20px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-badge {
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+        .menu-group { margin-top: 10px; }
+        .menu-group-title {
+            padding: 12px 20px;
+            font-size: 13px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .menu-group-title:hover { background: var(--bg-strong); }
+        .menu-group-title .arrow { margin-left: auto; transition: transform 0.2s; }
+        .menu-group.open .arrow { transform: rotate(180deg); }
+        .menu-items { display: none; }
+        .menu-group.open .menu-items { display: block; }
+        .menu-item {
+            padding: 10px 20px 10px 32px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #374151;
+        }
+        .menu-item span small { display: block; color: #9ca3af; font-size: 11px; }
+            .menu-item:hover { background: #f4f7ff; color: var(--accent); }
+            .menu-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-radius: 8px; margin: 0 12px; }
+        .menu-item .star { color: #c4c9d2; }
+        .menu-item .star.active { color: #f2c94c; }
+
+        .main { flex: 1; display: flex; flex-direction: column; }
+        .header {
+            height: 56px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            justify-content: space-between;
+        }
+        .header-left { display: flex; flex-direction: column; gap: 2px; }
+        .header-title { font-size: 16px; font-weight: 600; }
+        .breadcrumb { color: var(--muted); font-size: 12px; }
+        .header-tools { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+        .tool-pill {
+            border: 1px solid var(--border);
+            background: #fff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #374151;
+        }
+        .tool-select {
+            border: 1px solid var(--border);
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 12px;
+            color: #374151;
+        }
+        .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+        .content { flex: 1; padding: 24px; overflow: auto; }
+
+        .card {
+            background: var(--panel);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            animation: fadeUp 0.4s ease both;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .form-row { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+        .form-group { flex: 1; min-width: 180px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.15); }
+        .form-group input::placeholder { color: #b8bec7; }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-strong); }
+        .btn-default { background: #fff; color: var(--ink); border: 1px solid var(--border); }
+        .btn-default:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+        .btn-danger { background: var(--tag-danger); color: #fff; }
+        .btn-success { background: #0ea5e9; color: #fff; }
+        .btn-success:hover { background: #0284c7; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        .data-table th { background: #f7f9fc; font-weight: 600; color: var(--muted); }
+        .data-table tr:hover { background: #f4f7ff; }
+        .tag { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; display: inline-block; }
+        .tag-success { background: rgba(22, 163, 74, 0.12); color: var(--tag-success); }
+        .tag-warning { background: rgba(217, 119, 6, 0.12); color: var(--tag-warning); }
+        .tag-info { background: rgba(30, 158, 216, 0.12); color: var(--tag-info); }
+        .tag-danger { background: rgba(220, 38, 38, 0.12); color: var(--tag-danger); }
+
+        .link { color: var(--accent); text-decoration: none; margin-right: 10px; cursor: pointer; font-weight: 600; }
+        .link:hover { text-decoration: underline; }
+
+        .pagination {
+            padding: 14px 0;
+            text-align: right;
+            color: var(--muted);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .pagination select { background: #fff; border: 1px solid var(--border); color: var(--ink); padding: 4px 8px; border-radius: 6px; }
+        .page-btn { width: 28px; height: 28px; border: 1px solid var(--border); background: #fff; color: var(--ink); border-radius: 6px; cursor: pointer; }
+        .page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .page-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .page-title { font-size: 18px; font-weight: 700; }
+        .page-spacer { flex: 1; }
+        .page-actions { display: flex; gap: 8px; align-items: center; }
+        .adjustment-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }
+        .adjustment-tab {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: #fff;
+            font-size: 12px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .adjustment-tab.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
+        .data-table-compact th, .data-table-compact td { padding: 10px; font-size: 12px; }
+        .table-footer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .table-footer .page-size { display: flex; align-items: center; gap: 6px; }
+        .table-footer .pagination-inline { display: flex; align-items: center; gap: 6px; }
+        .field-hidden { display: none; }
+        .adjustment-line-layout { display: flex; gap: 16px; align-items: flex-start; }
+        .adjustment-line-main { flex: 1; min-width: 0; }
+        .adjustment-type-panel { width: 180px; border-left: 1px solid var(--border); padding-left: 12px; }
+        .adjustment-type-panel .adjustment-tab { width: 100%; text-align: left; justify-content: space-between; }
+        .adjustment-type-title { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+        .adjustment-subtable { background: #f9fafb; border-top: 1px solid var(--border); }
+        .adjustment-subtable table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .adjustment-subtable th, .adjustment-subtable td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+        .bulk-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+        .bulk-actions .form-group { min-width: 160px; }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            padding: 32px;
+            text-align: center;
+            color: var(--muted);
+            border-radius: 12px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            background: #f8fafc;
+        }
+        .upload-area:hover { border-color: var(--accent); color: var(--accent); }
+
+        .stats-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-card {
+            flex: 1;
+            min-width: 180px;
+            background: #fff;
+            border-radius: 14px;
+            padding: 18px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        .stat-card .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+        .stat-card .value { font-size: 24px; font-weight: 700; color: var(--accent); }
+
+        .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(18, 18, 18, 0.45);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            width: 620px;
+            max-width: 92%;
+            border: 1px solid var(--border);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-close { cursor: pointer; font-size: 20px; color: var(--muted); }
+        .modal-close:hover { color: var(--accent); }
+        .detail-row { display: flex; margin-bottom: 10px; }
+        .detail-label { width: 140px; color: var(--muted); font-size: 12px; }
+        .detail-value { flex: 1; font-size: 13px; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 960px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; position: relative; }
+            .menu-items { display: flex; flex-wrap: wrap; }
+            .menu-item { width: 50%; padding-left: 20px; }
+        }
+        @media (max-width: 640px) {
+            .menu-item { width: 100%; }
+            .content { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="sidebar">
+        <div class="logo"><span class="logo-badge"></span>WMS Pro</div>
+        <div class="menu-group open">
+            <div class="menu-group-title" onclick="toggleMenu(this)">
+                <span>库存管理</span>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="menu-items">
+                <div class="menu-item active" onclick="showPage('inventory')"><span>库存台账<small>Inventory</small></span><span class="star" onclick="event.stopPropagation();toggleStar(this)">☆</span></div>
+                <div class="menu-item" onclick="showPage('inventory-lock')"><span>库存锁定<small>Inventory Lock</small></span><span class="star" onclick="event.stopPropagation();toggleStar(this)">☆</span></div>
+                <div class="menu-item" onclick="showPage('inventory-activity')"><span>库存活动<small>Inventory Activity</small></span><span class="star" onclick="event.stopPropagation();toggleStar(this)">☆</span></div>
+                <div class="menu-item" onclick="showPage('inventory-log')"><span>库存日志<small>Inventory Log</small></span><span class="star" onclick="event.stopPropagation();toggleStar(this)">☆</span></div>
+                <div class="menu-item" onclick="showPage('lp')"><span>LP 容器<small>License Plate</small></span><span class="star active" onclick="event.stopPropagation();toggleStar(this)">★</span></div>
+                <div class="menu-item" onclick="showPage('adjustment')"><span>调整单<small>Adjustment</small></span><span class="star" onclick="event.stopPropagation();toggleStar(this)">☆</span></div>
+                <div class="menu-item" onclick="showPage('dyn-property-mapping')"><span>动态属性映射<small>Config</small></span><span class="star" onclick="event.stopPropagation();toggleStar(this)">☆</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="main">
+        <div class="header">
+            <div class="header-left">
+                <div class="header-title">库存管理</div>
+                <div class="breadcrumb" id="breadcrumb">库存 / 库存台账</div>
+            </div>
+            <div class="header-tools">
+                <div class="tool-pill">Facility: <strong>FAC001</strong></div>
+                <select class="tool-select">
+                    <option>English</option>
+                    <option>中文</option>
+                </select>
+                <div class="tool-pill">Admin</div>
+                <div class="avatar">A</div>
+            </div>
+        </div>
+        <div class="content" id="content"></div>
+    </div>
+</div>
+<div class="modal" id="modal"><div class="modal-content" id="modalContent"></div></div>
+
+<script>
+function toggleMenu(el) { el.parentElement.classList.toggle('open'); }
+function toggleStar(el) { el.classList.toggle('active'); el.textContent = el.classList.contains('active') ? '★' : '☆'; }
+function showModal(content) { document.getElementById('modalContent').innerHTML = content; document.getElementById('modal').classList.add('show'); }
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+function switchInventoryTab(button) {
+    const tabId = button.getAttribute('data-tab');
+    const container = button.closest('.card');
+    const tabs = container.querySelectorAll('.inventory-tab');
+    tabs.forEach((tab) => {
+        tab.style.display = tab.id === tabId ? 'block' : 'none';
+    });
+    const buttons = container.querySelectorAll('.tab-btn');
+    buttons.forEach((btn) => {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-default');
+    });
+    button.classList.remove('btn-default');
+    button.classList.add('btn-primary');
+}
+document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+const adjustmentTypeFields = {
+    ADD_INVENTORY: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'uomId', 'titleId', 'lotNo', 'sn', 'status', 'goodsType', 'mfgDate', 'expirationDate'],
+    ADJUST_QTY: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'uomId'],
+    ADJUST_STATUS: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'adjustFrom', 'adjustTo'],
+    ADJUST_TITLE: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'adjustFrom', 'adjustTo'],
+    ADJUST_GOOD_TYPE: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'adjustFrom', 'adjustTo'],
+    ADJUST_LOT_NO: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'adjustFrom', 'adjustTo'],
+    ADJUST_EXPIRATION_DATE: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'adjustFrom', 'adjustTo'],
+    ADJUST_MFG_DATE: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'adjustFrom', 'adjustTo'],
+    ADJUST_LP: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'toLpId'],
+    ADJUST_LOCATION: ['itemId', 'lpId', 'locationId', 'qty', 'qty2', 'toLocationId']
+};
+
+const adjustmentSearchFields = {
+    ADD_INVENTORY: [],
+    ADJUST_QTY: ['adjustQty'],
+    ADJUST_STATUS: ['adjustStatus'],
+    ADJUST_TITLE: ['adjustTitle'],
+    ADJUST_GOOD_TYPE: ['adjustGoodsType'],
+    ADJUST_LOT_NO: ['adjustLotNo'],
+    ADJUST_EXPIRATION_DATE: ['adjustExpirationDate'],
+    ADJUST_MFG_DATE: ['adjustMfgDate'],
+    ADJUST_LP: ['adjustLp', 'adjustQty'],
+    ADJUST_LOCATION: ['adjustLocation']
+};
+
+const adjustmentSearchModes = {
+    ADD_INVENTORY: 'new-inventory',
+    ADJUST_LOCATION: 'lp',
+    DEFAULT: 'inventory'
+};
+
+function updateAdjustmentLineFieldsByType(row, type) {
+    if (!row) return;
+    const fields = adjustmentTypeFields[type] || [];
+    row.querySelectorAll('[data-field]').forEach((cell) => {
+        const field = cell.getAttribute('data-field');
+        if (field === 'type' || field === 'actions') return;
+        if (fields.includes(field)) {
+            cell.classList.remove('field-hidden');
+        } else {
+            cell.classList.add('field-hidden');
+        }
+    });
+}
+
+function updateAdjustmentLineTypeLabel(row, type) {
+    const typeCell = row.querySelector('[data-field="type"]');
+    if (!typeCell) return;
+    const tag = typeCell.querySelector('.tag');
+    if (tag) {
+        tag.textContent = type;
+    } else {
+        typeCell.textContent = type;
+    }
+}
+
+function setAdjustmentTypeForScope(scope, type) {
+    if (!scope) return;
+    scope.setAttribute('data-adjustment-type', type);
+    const panel = scope.querySelector('[data-adjustment-type-panel]');
+    if (panel) {
+        panel.querySelectorAll('.adjustment-tab').forEach((item) => item.classList.remove('active'));
+        const activeTab = panel.querySelector(`[data-adjustment-type="${type}"]`);
+        if (activeTab) activeTab.classList.add('active');
+    }
+    updateSearchTableFieldsByType(scope, type);
+}
+
+function setAdjustmentType(tabEl) {
+    const panel = tabEl.closest('[data-adjustment-type-panel]');
+    if (!panel) return;
+    panel.querySelectorAll('.adjustment-tab').forEach((item) => item.classList.remove('active'));
+    tabEl.classList.add('active');
+    const type = tabEl.getAttribute('data-adjustment-type');
+    const scope = tabEl.closest('[data-adjustment-scope]');
+    if (!scope) return;
+    setAdjustmentTypeForScope(scope, type);
+}
+
+function initAdjustmentLineFields(container) {
+    const root = typeof container === 'string' ? document.querySelector(container) : container;
+    if (!root) return;
+    root.querySelectorAll('[data-adjustment-scope]').forEach((scope) => {
+        const type = scope.getAttribute('data-adjustment-type') || 'ADJUST_QTY';
+        updateSearchTableFieldsByType(scope, type);
+    });
+    root.querySelectorAll('#adjustmentLineTable tbody tr, #adjustmentLineTableEdit tbody tr').forEach((row) => {
+        const typeCell = row.querySelector('[data-field="type"] .tag');
+        const type = typeCell ? typeCell.textContent.trim() : 'ADJUST_QTY';
+        updateAdjustmentLineFieldsByType(row, type);
+    });
+}
+
+function updateSearchTableFieldsByType(scope, type) {
+    if (!scope) return;
+    const fields = adjustmentSearchFields[type] || [];
+    scope.querySelectorAll('[data-search-field]').forEach((cell) => {
+        const field = cell.getAttribute('data-search-field');
+        if (fields.includes(field)) {
+            cell.classList.remove('field-hidden');
+        } else {
+            cell.classList.add('field-hidden');
+        }
+    });
+    const mode = adjustmentSearchModes[type] || adjustmentSearchModes.DEFAULT;
+    scope.querySelectorAll('[data-search-table]').forEach((table) => {
+        const tableMode = table.getAttribute('data-search-table');
+        if (tableMode === mode) {
+            table.classList.remove('field-hidden');
+        } else {
+            table.classList.add('field-hidden');
+        }
+    });
+    scope.querySelectorAll('[data-new-inventory-panel]').forEach((panel) => {
+        if (mode === 'new-inventory') {
+            panel.classList.remove('field-hidden');
+        } else {
+            panel.classList.add('field-hidden');
+        }
+    });
+    updateAdjustQtyLabels(scope, type);
+}
+
+function updateAdjustQtyLabels(scope, type) {
+    if (!scope) return;
+    const isAdjustQty = type === 'ADJUST_QTY';
+    const labelText = isAdjustQty ? 'Qty Adjust To' : 'Qty Adjust To (option)';
+    const placeholderText = isAdjustQty ? 'Qty Adjust To' : 'Qty Adjust To (option)';
+    scope.querySelectorAll('[data-search-field="adjustQty"]').forEach((cell) => {
+        if (cell.tagName === 'TH') {
+            cell.textContent = labelText;
+            return;
+        }
+        const label = cell.querySelector('label');
+        if (label) {
+            label.textContent = labelText;
+        }
+        const input = cell.querySelector('input');
+        if (input) {
+            input.setAttribute('placeholder', placeholderText);
+        }
+    });
+}
+
+function createAdjustmentLineRow(type) {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td data-field="type"><span class="tag tag-info">${type}</span></td>
+        <td data-field="itemId"><input type="text" style="width:80px;" placeholder="SKU"></td>
+        <td data-field="lpId"><input type="text" style="width:80px;" placeholder="LP"></td>
+        <td data-field="locationId"><input type="text" style="width:80px;" placeholder="Location"></td>
+        <td data-field="qty"><input type="number" style="width:60px;" value="1"></td>
+        <td data-field="qty2"><input type="number" style="width:60px;" placeholder="Qty2"></td>
+        <td data-field="uomId"><select style="width:60px;"><option>EA</option><option>CS</option></select></td>
+        <td data-field="adjustFrom"><input type="text" style="width:90px;" placeholder="from"></td>
+        <td data-field="adjustTo"><input type="text" style="width:90px;" placeholder="to"></td>
+        <td data-field="toLpId"><input type="text" style="width:80px;" placeholder="LP"></td>
+        <td data-field="toLocationId"><input type="text" style="width:90px;" placeholder="Location"></td>
+        <td data-field="titleId"><input type="text" style="width:60px;" placeholder="Title"></td>
+        <td data-field="lotNo"><input type="text" style="width:80px;" placeholder="Lot"></td>
+        <td data-field="sn"><input type="text" style="width:80px;" placeholder="SN"></td>
+        <td data-field="status"><select style="width:90px;"><option>OPEN</option><option>DAMAGE</option></select></td>
+        <td data-field="goodsType"><select style="width:90px;"><option>GOOD</option><option>DAMAGE</option><option>NEAR_EXPIRY</option></select></td>
+        <td data-field="mfgDate"><input type="date" style="width:130px;"></td>
+        <td data-field="expirationDate"><input type="date" style="width:130px;"></td>
+        <td data-field="actions"><a class="link" style="color:var(--tag-danger);">删除</a></td>
+    `;
+    updateAdjustmentLineFieldsByType(row, type);
+    return row;
+}
+
+function toggleAllSelection(masterCheckbox, tableSelector) {
+    const table = document.querySelector(tableSelector);
+    if (!table) return;
+    table.querySelectorAll('tbody input[type="checkbox"]').forEach((checkbox) => {
+        checkbox.checked = masterCheckbox.checked;
+    });
+}
+
+function addSelectedInventoryToAdjustment(sourceTableSelector, targetTableSelector) {
+    const sourceTable = document.querySelector(sourceTableSelector);
+    const targetTable = document.querySelector(targetTableSelector);
+    if (!sourceTable || !targetTable) return;
+    const scope = targetTable.closest('[data-adjustment-scope]');
+    const type = scope ? scope.getAttribute('data-adjustment-type') : 'ADJUST_QTY';
+    const rows = sourceTable.querySelectorAll('tbody tr');
+    rows.forEach((row) => {
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        if (!checkbox || !checkbox.checked) return;
+        const newRow = createAdjustmentLineRow(type);
+        const itemId = row.getAttribute('data-item-id') || '';
+        const lpId = row.getAttribute('data-lp-id') || '';
+        const locationId = row.getAttribute('data-location-id') || '';
+        const titleId = row.getAttribute('data-title-id') || '';
+        const lotNo = row.getAttribute('data-lot-no') || '';
+        const sn = row.getAttribute('data-sn') || '';
+        const status = row.getAttribute('data-status') || '';
+        const goodsType = row.getAttribute('data-goods-type') || '';
+        const setInputValue = (field, value) => {
+            const cell = newRow.querySelector(`[data-field="${field}"]`);
+            if (!cell) return;
+            const input = cell.querySelector('input');
+            const select = cell.querySelector('select');
+            if (input) input.value = value;
+            if (select) select.value = value;
+            if (!input && !select) cell.textContent = value;
+        };
+        setInputValue('itemId', itemId);
+        setInputValue('lpId', lpId);
+        setInputValue('locationId', locationId);
+        setInputValue('titleId', titleId);
+        setInputValue('lotNo', lotNo);
+        setInputValue('sn', sn);
+        setInputValue('status', status);
+        setInputValue('goodsType', goodsType);
+        targetTable.querySelector('tbody').appendChild(newRow);
+    });
+}
+
+function applyBulkAdjustments(scopeSelector, tableSelector) {
+    const scope = document.querySelector(scopeSelector);
+    const table = document.querySelector(tableSelector);
+    if (!scope || !table) return;
+    const bulkInputs = scope.querySelectorAll('[data-bulk-field]');
+    const bulkValues = {};
+    bulkInputs.forEach((input) => {
+        if (input.classList.contains('field-hidden')) return;
+        bulkValues[input.getAttribute('data-bulk-field')] = input.value;
+    });
+    table.querySelectorAll('tbody tr').forEach((row) => {
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        if (!checkbox || !checkbox.checked) return;
+        Object.keys(bulkValues).forEach((field) => {
+            const value = bulkValues[field];
+            if (!value) return;
+            const cell = row.querySelector(`[data-search-field="${field}"]`);
+            if (!cell) return;
+            const input = cell.querySelector('input');
+            const select = cell.querySelector('select');
+            if (input) input.value = value;
+            if (select) select.value = value;
+        });
+    });
+}
+
+function copyFirstSelectedAdjustments(tableSelector) {
+    const table = document.querySelector(tableSelector);
+    if (!table) return;
+    const selectedRows = Array.from(table.querySelectorAll('tbody tr')).filter((row) => {
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        return checkbox && checkbox.checked;
+    });
+    if (selectedRows.length === 0) return;
+    const sourceRow = selectedRows[0];
+    const sourceValues = {};
+    sourceRow.querySelectorAll('[data-search-field]').forEach((cell) => {
+        const field = cell.getAttribute('data-search-field');
+        const input = cell.querySelector('input');
+        const select = cell.querySelector('select');
+        if (input && input.value) sourceValues[field] = input.value;
+        if (select && select.value) sourceValues[field] = select.value;
+    });
+    selectedRows.slice(1).forEach((row) => {
+        Object.keys(sourceValues).forEach((field) => {
+            const cell = row.querySelector(`[data-search-field="${field}"]`);
+            if (!cell) return;
+            const input = cell.querySelector('input');
+            const select = cell.querySelector('select');
+            if (input) input.value = sourceValues[field];
+            if (select) select.value = sourceValues[field];
+        });
+    });
+}
+
+function addNewInventoryToAdjustment(scopeSelector, targetTableSelector) {
+    const scope = document.querySelector(scopeSelector);
+    const targetTable = document.querySelector(targetTableSelector);
+    if (!scope || !targetTable) return;
+    const type = 'ADD_INVENTORY';
+    const newRow = createAdjustmentLineRow(type);
+    const getValue = (name) => {
+        const input = scope.querySelector(`[data-new-inventory="${name}"]`);
+        return input ? input.value : '';
+    };
+    const setValue = (field, value) => {
+        const cell = newRow.querySelector(`[data-field="${field}"]`);
+        if (!cell) return;
+        const input = cell.querySelector('input');
+        const select = cell.querySelector('select');
+        if (input) input.value = value;
+        if (select) select.value = value;
+        if (!input && !select) cell.textContent = value;
+    };
+    setValue('itemId', getValue('itemId'));
+    setValue('lpId', getValue('lpId'));
+    setValue('locationId', getValue('locationId'));
+    setValue('qty', getValue('qty'));
+    setValue('uomId', getValue('uomId'));
+    setValue('titleId', getValue('titleId'));
+    setValue('goodsType', getValue('goodsType'));
+    targetTable.querySelector('tbody').appendChild(newRow);
+}
+function addAdjustmentLineToTable(targetSelector, type) {
+    const table = document.querySelector(targetSelector);
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    const row = createAdjustmentLineRow(type);
+    tbody.appendChild(row);
+}
+
+function showAdjustmentLineModal(targetSelector) {
+    const scope = document.querySelector('[data-adjustment-scope][data-adjustment-type]');
+    const currentType = scope ? scope.getAttribute('data-adjustment-type') : 'ADJUST_QTY';
+    showModal(`
+        <div class="modal-title">新增调整行 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="adjustment-line-layout" data-adjustment-scope data-adjustment-type="${currentType}">
+            <div class="adjustment-line-main">
+                <div class="card" style="box-shadow:none;border:1px solid var(--border);margin-bottom:16px;">
+                    <div class="card-title">库存查询</div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Title</label><select><option value="">Select</option><option>Title-A</option><option>Title-B</option></select></div>
+                        <div class="form-group"><label>Item</label><select><option value="">Select</option><option>SKU-001</option><option>SKU-002</option></select></div>
+                        <div class="form-group"><label>LP</label><input type="text" placeholder="LP"></div>
+                        <div class="form-group"><label>Inventory Status</label><select><option value="">Select</option><option>OPEN</option><option>PICKED</option><option>PACKED</option></select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Location</label><select><option value="">Select</option><option>A-01-01</option><option>B-01-02</option></select></div>
+                        <div class="form-group"><label>Goods Type</label><select><option value="">Select</option><option>GOOD</option><option>DAMAGE</option></select></div>
+                        <div class="form-group"><label>Receipt ID</label><input type="text" placeholder="Enter Receipt ID"></div>
+                        <div class="form-group"><label>Lot No</label><input type="text" placeholder="Enter Lot No"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>External LPN</label><input type="text" placeholder="External LPN"></div>
+                        <div class="form-group"><label>SN</label><input type="text" placeholder="Enter SN"></div>
+                        <div class="form-group"></div>
+                        <div class="form-group"></div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary">Search</button>
+                        <button class="btn btn-default">Reset</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table data-table-compact">
+                        <thead>
+                            <tr>
+                                <th>Item</th><th>Qty</th><th>UOM</th><th>Dual Qty</th><th>Dual UOM</th>
+                                <th>Location</th><th>Customer</th><th>LP</th><th>Title</th><th>Status</th>
+                                <th>Type</th><th>Lot#</th><th>Expiration Date</th><th>Mfg Date</th><th>Shelf Life Days</th>
+                                <th>Origin Qty</th><th>Qty Adjust To</th><th>Origin Qty2</th><th>Qty2 Adjust To</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-field="itemId">
+                                <td>SKU-001</td><td>120</td><td>EA</td><td>10</td><td>CS</td>
+                                <td>A-01-01</td><td>LtestAA</td><td>LP-1001</td><td>T001</td><td>OPEN</td>
+                                <td>GOOD</td><td>LOT-001</td><td>2027-06-30</td><td>2026-06-30</td><td>365</td>
+                                <td>120</td><td data-field="adjustTo"><input type="number" style="width:80px;" value="110"></td><td>10</td><td data-field="qty2"><input type="number" style="width:80px;" value="9"></td>
+                            </tr>
+                            <tr data-field="itemId">
+                                <td>SKU-002</td><td>40</td><td>EA</td><td>-</td><td>-</td>
+                                <td>B-01-02</td><td>LtestAA</td><td>LP-2003</td><td>T002</td><td>OPEN</td>
+                                <td>DAMAGE</td><td>LOT-009</td><td>2027-12-20</td><td>2026-12-20</td><td>365</td>
+                                <td>40</td><td data-field="adjustTo"><input type="number" style="width:80px;" value="38"></td><td>-</td><td data-field="qty2"><input type="number" style="width:80px;" value=""></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+                    <button class="btn btn-default" onclick="closeModal()">取消</button>
+                    <button class="btn btn-primary" style="margin-left:10px;" onclick="addAdjustmentLineToTable('${targetSelector}', document.querySelector('#modalContent [data-adjustment-scope]').getAttribute('data-adjustment-type')); closeModal();">Add To Adjustment Line</button>
+                </div>
+            </div>
+            <div class="adjustment-type-panel">
+                <div class="adjustment-type-title">调整类型</div>
+                <div class="adjustment-tabs" data-adjustment-type-panel>
+                    <div class="adjustment-tab" data-adjustment-type="ADJUST_LOCATION" onclick="setAdjustmentType(this)">Adjust Location</div>
+                    <div class="adjustment-tab" data-adjustment-type="ADJUST_LP" onclick="setAdjustmentType(this)">Adjust LP</div>
+                    <div class="adjustment-tab" data-adjustment-type="ADJUST_QTY" onclick="setAdjustmentType(this)">Adjust Qty</div>
+                    <div class="adjustment-tab" data-adjustment-type="ADJUST_STATUS" onclick="setAdjustmentType(this)">Adjust Status</div>
+                    <div class="adjustment-tab" data-adjustment-type="ADJUST_TITLE" onclick="setAdjustmentType(this)">Adjust Title</div>
+                    <div class="adjustment-tab" data-adjustment-type="ADJUST_GOOD_TYPE" onclick="setAdjustmentType(this)">Adjust Goods Type</div>
+                    <div class="adjustment-tab" data-adjustment-type="ADJUST_LOT_NO" onclick="setAdjustmentType(this)">Adjust Lot No</div>
+                    <div class="adjustment-tab" data-adjustment-type="ADJUST_EXPIRATION_DATE" onclick="setAdjustmentType(this)">Adjust Expiration Date</div>
+                    <div class="adjustment-tab" data-adjustment-type="ADJUST_MFG_DATE" onclick="setAdjustmentType(this)">Adjust Mfg Date</div>
+                    <div class="adjustment-tab" data-adjustment-type="ADD_INVENTORY" onclick="setAdjustmentType(this)">New Inventory</div>
+                </div>
+            </div>
+        </div>
+    `);
+    const modalScope = document.querySelector('#modalContent [data-adjustment-scope]');
+    if (modalScope) {
+        modalScope.querySelectorAll('.adjustment-tab').forEach((tab) => {
+            if (tab.getAttribute('data-adjustment-type') === currentType) {
+                tab.classList.add('active');
+            }
+        });
+    }
+    initAdjustmentLineFields('#modalContent');
+}
+
+const pages = {    // ==================== 库存管理页面 ====================
+    inventory: `
+        <div class="card">
+            <div class="card-title">库存查询</div>
+            <div class="form-row">
+                <div class="form-group"><label>Customer</label><select><option value="">搜索组织</option><option>CUST001</option><option>CUST002</option></select></div>
+                <div class="form-group"><label>Title</label><select><option value="">搜索组织</option><option>TITLE001</option><option>TITLE002</option></select></div>
+                <div class="form-group"><label>Item</label><input type="text" placeholder="itemId"></div>
+                <div class="form-group"><label>Inventory Status</label><select><option value="">全部</option><option>OPEN</option><option>PICKED</option><option>PACKED</option><option>LOADED</option><option>SHIPPED</option><option>ADJUSTOUT</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>LP</label><input type="text" placeholder="lpId"></div>
+                <div class="form-group"><label>Original LP</label><input type="text" placeholder="originalLpId"></div>
+                <div class="form-group"><label>Location</label><input type="text" placeholder="locationId"></div>
+                <div class="form-group"><label>Lot No</label><input type="text" placeholder="lotNo"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Goods Type</label><select><option value="">全部</option><option>GOOD</option><option>DAMAGE</option><option>RETURN</option></select></div>
+                <div class="form-group"><label>Inventory Channel</label><select><option value="">全部</option><option>RECEIVE</option><option>MOVE</option><option>PICK</option><option>PACK</option><option>SHIP</option></select></div>
+                <div class="form-group"><label>Order#</label><input type="text" placeholder="orderId"></div>
+                <div class="form-group"><label>Receipt</label><input type="text" placeholder="receiptId"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Receipt Task</label><input type="text" placeholder="receiptTaskId"></div>
+                <div class="form-group"><label>Putaway Task</label><input type="text" placeholder="putawayTaskId"></div>
+                <div class="form-group"><label>Trailer Nos</label><input type="text" placeholder="trailerNos"></div>
+                <div class="form-group"><label>Container Nos</label><input type="text" placeholder="containerNos"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary">查询</button>
+                <button class="btn btn-default">重置</button>
+                <button class="btn btn-success" onclick="showPage('inventory-import')">批量导入</button>
+                <button class="btn btn-default">导出数据</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">库存视图</div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <button class="btn btn-primary tab-btn" data-tab="inventory-summary" onclick="switchInventoryTab(this)">商品汇总</button>
+                <button class="btn btn-default tab-btn" data-tab="inventory-list" onclick="switchInventoryTab(this)">库存列表</button>
+            </div>
+            <div id="inventory-summary" class="inventory-tab">
+                <div style="overflow-x:auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Item Status</th>
+                                <th>Type</th>
+                                <th>Total Qty</th>
+                                <th>Total Base Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>SKU-001</td><td>标准件</td><td><span class="tag tag-success">OPEN</span></td><td>ACTIVE</td><td>GOOD</td><td>1,200 EA</td><td>1,200 EA</td></tr>
+                            <tr><td>SKU-002</td><td>易损件</td><td><span class="tag tag-warning">PICKED</span></td><td>ACTIVE</td><td>DAMAGE</td><td>320 EA</td><td>320 EA</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <div>1-2 of 40 items</div>
+                    <div class="page-size">Rows per page
+                        <select>
+                            <option selected>10</option>
+                            <option>20</option>
+                            <option>50</option>
+                        </select>
+                    </div>
+                    <div class="pagination-inline">
+                        <button class="page-btn">‹</button>
+                        <button class="page-btn active">1</button>
+                        <button class="page-btn">2</button>
+                        <button class="page-btn">3</button>
+                        <button class="page-btn">›</button>
+                    </div>
+                </div>
+            </div>
+            <div id="inventory-list" class="inventory-tab" style="display:none;">
+                <div style="overflow-x:auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Customer</th>
+                                <th>Title</th>
+                                <th>Item</th>
+                                <th>Description</th>
+                                <th>Qty</th>
+                                <th>Base Qty</th>
+                                <th>Status</th>
+                                <th>Type</th>
+                                <th>Lot#</th>
+                                <th>LP</th>
+                                <th>Location</th>
+                                <th>Receipt</th>
+                                <th>Order</th>
+                                <th>Receive Task</th>
+                                <th>PutAway Task</th>
+                                <th>Adjustment Id</th>
+                                <th>Original LP</th>
+                                <th>差异标记</th>
+                                <th>Received Time</th>
+                                <th>Shipped Time</th>
+                                <th>Created Time</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1001</td><td>CUST001</td><td>TITLE001</td><td>SKU-001</td><td>标准件</td><td>100 EA</td><td>100 EA</td>
+                                <td><span class="tag tag-success">OPEN</span></td><td>GOOD</td><td>LOT20260101</td><td>ILP-001</td><td>A-01-01</td>
+                                <td>REC-001</td><td>ORD-001</td><td>RCT-001</td><td>PUT-001</td><td>ADJ-0001</td><td>OLP-001</td>
+                                <td><span class="tag tag-info">WARNING</span></td><td>2026-01-12 08:30</td><td>-</td><td>2026-01-10 08:00</td>
+                                <td><a class="link" onclick="showInventoryDetail(1001)">详情</a></td>
+                            </tr>
+                            <tr>
+                                <td>1002</td><td>CUST002</td><td>TITLE002</td><td>SKU-002</td><td>易损件</td><td>50 EA</td><td>50 EA</td>
+                                <td><span class="tag tag-warning">PICKED</span></td><td>DAMAGE</td><td>LOT20260102</td><td>ILP-002</td><td>A-01-02</td>
+                                <td>REC-002</td><td>ORD-002</td><td>RCT-002</td><td>PUT-002</td><td>ADJ-0002</td><td>OLP-002</td>
+                                <td>-</td><td>2026-01-11 09:20</td><td>2026-01-13 15:10</td><td>2026-01-09 10:00</td>
+                                <td><a class="link" onclick="showInventoryDetail(1002)">详情</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination"><span>共 156 条</span><select><option>10</option><option>20</option><option>50</option></select><button class="page-btn">?</button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">?</button></div>
+            </div>
+        </div>`,
+    // ==================== 库存导入页面 ====================
+    'inventory-import': `
+        <div style="margin-bottom:15px;"><button class="btn btn-default" onclick="showPage('inventory')">返回库存列表</button></div>
+        <div class="card">
+            <div class="card-title">批量导入</div>
+            <div style="text-align:right;margin-bottom:10px;"><button class="btn btn-default">下载模板</button></div>
+            <div class="upload-area">
+                <div style="font-weight:600;margin-bottom:8px;">拖拽文件或点击上传</div>
+                <div style="font-size:12px;">支持 CSV / Excel，导入将自动创建调整单并审批</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">数据预览</div>
+            <table class="data-table">
+                <thead><tr><th>#</th><th>客户</th><th>商品</th><th>数量</th><th>单位</th><th>LP</th><th>库位</th></tr></thead>
+                <tbody><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;">暂无上传数据</td></tr></tbody>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-title">字段映射</div>
+            <div class="form-row">
+                <div class="form-group"><label>customerId</label><select><option>customerId</option></select></div>
+                <div class="form-group"><label>itemId</label><select><option>itemId</option></select></div>
+                <div class="form-group"><label>qty</label><select><option>qty</option></select></div>
+                <div class="form-group"><label>uomId</label><select><option>uomId</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>lpId</label><select><option>lpId</option></select></div>
+                <div class="form-group"><label>locationId</label><select><option>locationId</option></select></div>
+                <div class="form-group"><label>titleId</label><select><option>titleId</option></select></div>
+                <div class="form-group"><label>lotNo</label><select><option>lotNo</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>qty2</label><select><option>qty2</option></select></div>
+                <div class="form-group"><label>uomId2</label><select><option>uomId2</option></select></div>
+                <div class="form-group"><label>expirationDate</label><select><option>expirationDate</option></select></div>
+                <div class="form-group"><label>mfgDate</label><select><option>mfgDate</option></select></div>
+            </div>
+        <div style="text-align:right;margin-top:15px;"><button class="btn btn-default" onclick="showPage('inventory')">取消</button><button class="btn btn-primary" style="margin-left:10px;">提交导入</button></div>
+        </div>`,
+    // ==================== 库存锁定页面 ====================
+    'inventory-lock': `
+        <div class="card">
+            <div class="card-title">库存锁定查询</div>
+            <div class="form-row">
+                <div class="form-group"><label>Customer</label><select><option value="">搜索组织</option><option>CUST001</option><option>CUST002</option></select></div>
+                <div class="form-group"><label>Item</label><select><option value="">搜索商品</option><option>SKU-001</option><option>SKU-002</option></select></div>
+                <div class="form-group"><label>Order ID</label><input type="text" placeholder="orderId"></div>
+                <div class="form-group"><label>Status</label><select><option value="">全部</option><option>ACTIVE</option><option>INACTIVE</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Lot No</label><input type="text" placeholder="lotNo"></div>
+                <div class="form-group"></div>
+                <div class="form-group"></div>
+                <div class="form-group"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary">查询</button>
+                <button class="btn btn-default">重置</button>
+                <button class="btn btn-default">导出</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">锁定列表</div>
+            <table class="data-table">
+                <thead><tr><th>Item</th><th>Description</th><th>Qty</th><th>Order#</th><th>Order Status</th><th>Customer</th><th>Title</th><th>Status</th><th>Lot No</th></tr></thead>
+                <tbody>
+                    <tr><td><a class="link" onclick="showLockDetail(1)">SKU-001</a></td><td>标准件</td><td>30 EA</td><td>ORD-001</td><td>OPEN</td><td>CUST001</td><td>TITLE001</td><td><span class="tag tag-success">ACTIVE</span></td><td>LOT001</td></tr>
+                    <tr><td><a class="link" onclick="showLockDetail(2)">SKU-002</a></td><td>易损件</td><td>20 EA</td><td>ORD-001</td><td>OPEN</td><td>CUST001</td><td>TITLE001</td><td><span class="tag tag-success">ACTIVE</span></td><td>LOT002</td></tr>
+                    <tr><td><a class="link" onclick="showLockDetail(3)">SKU-001</a></td><td>标准件</td><td>50 EA</td><td>ORD-002</td><td>CLOSED</td><td>CUST002</td><td>TITLE002</td><td><span class="tag tag-danger">INACTIVE</span></td><td>LOT001</td></tr>
+                </tbody>
+            </table>
+            <div class="pagination"><span>共 57 条</span><button class="page-btn">?</button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">?</button></div>
+        </div>`,
+    // ==================== 库存活动页面 ====================
+    'inventory-activity': `
+        <div class="card">
+            <div class="card-title">库存活动查询</div>
+            <div class="form-row">
+                <div class="form-group"><label>Activity Type</label><select><option value="">全部</option><option>RECEIVE</option><option>MOVE</option><option>PICK</option><option>PACK</option><option>ADJUST</option></select></div>
+                <div class="form-group"><label>Customer</label><select><option value="">搜索组织</option><option>CUST001</option><option>CUST002</option></select></div>
+                <div class="form-group"><label>Title</label><select><option value="">搜索组织</option><option>TITLE001</option><option>TITLE002</option></select></div>
+                <div class="form-group"><label>Item</label><select><option value="">搜索商品</option><option>SKU-001</option><option>SKU-002</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>From LP</label><input type="text" placeholder="fromLpId"></div>
+                <div class="form-group"><label>To LP</label><input type="text" placeholder="toLpId"></div>
+                <div class="form-group"><label>From Location</label><input type="text" placeholder="选择库位"></div>
+                <div class="form-group"><label>To Location</label><input type="text" placeholder="选择库位"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Task ID</label><input type="text" placeholder="taskId"></div>
+                <div class="form-group"><label>Adjustment ID</label><input type="text" placeholder="adjustmentId"></div>
+                <div class="form-group"><label>Created Time From</label><input type="datetime-local"></div>
+                <div class="form-group"><label>Created Time To</label><input type="datetime-local"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary">查询</button>
+                <button class="btn btn-default">重置</button>
+                <button class="btn btn-default">导出</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">活动记录</div>
+            <table class="data-table">
+                <thead><tr><th>ID</th><th>Activity Type</th><th>Item</th><th>Qty</th><th>From LP</th><th>To LP</th><th>From Location</th><th>To Location</th><th>Customer</th><th>Title</th><th>Task ID</th><th>Adjustment ID</th><th>Created Time</th></tr></thead>
+                <tbody>
+                    <tr><td>1001</td><td><span class="tag tag-info">RECEIVE</span></td><td>SKU-001</td><td>100 EA</td><td>-</td><td>ILP-001</td><td>-</td><td>DOCK-01</td><td>CUST001</td><td>TITLE001</td><td>TASK-001</td><td>-</td><td>2026-01-13 09:00</td></tr>
+                    <tr><td>1002</td><td><span class="tag tag-success">MOVE</span></td><td>SKU-001</td><td>100 EA</td><td>ILP-001</td><td>ILP-001</td><td>DOCK-01</td><td>A-01-01</td><td>CUST001</td><td>TITLE001</td><td>TASK-002</td><td>-</td><td>2026-01-13 09:30</td></tr>
+                    <tr><td>1003</td><td><span class="tag tag-warning">PICK</span></td><td>SKU-001</td><td>30 EA</td><td>ILP-001</td><td>CLP-001</td><td>A-01-01</td><td>PICK-01</td><td>CUST001</td><td>TITLE001</td><td>TASK-003</td><td>-</td><td>2026-01-13 10:00</td></tr>
+                    <tr><td>1004</td><td><span class="tag tag-danger">ADJUST</span></td><td>SKU-002</td><td>-10 EA</td><td>ILP-002</td><td>-</td><td>A-01-02</td><td>-</td><td>CUST002</td><td>TITLE002</td><td>-</td><td>ADJ-0002</td><td>2026-01-13 11:00</td></tr>
+                </tbody>
+            </table>
+            <div class="pagination"><span>共 1,234 条</span><button class="page-btn">?</button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">?</button></div>
+        </div>`,
+    // ==================== 库存日志页面 ====================
+    'inventory-log': `
+        <div class="card">
+            <div class="card-title">库存日志查询</div>
+            <div class="form-row">
+                <div class="form-group"><label>库存 ID</label><input type="text" placeholder="inventoryId"></div>
+                <div class="form-group"><label>商品 ID</label><input type="text" placeholder="itemId"></div>
+                <div class="form-group"><label>操作类型</label><select><option value="">全部</option><option>INSERT</option><option>UPDATE</option><option>MOVE</option></select></div>
+                <div class="form-group"><label>状态</label><select><option value="">全部</option><option>OPEN</option><option>PICKED</option><option>PACKED</option><option>SHIPPED</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>开始时间</label><input type="datetime-local"></div>
+                <div class="form-group"><label>结束时间</label><input type="datetime-local"></div>
+                <div class="form-group"></div>
+                <div class="form-group"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary">查询</button>
+                <button class="btn btn-default">重置</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">日志记录</div>
+            <table class="data-table">
+                <thead><tr><th>ID</th><th>Inventory ID</th><th>Item ID</th><th>From Qty</th><th>To Qty</th><th>Status</th><th>Type</th><th>Action</th><th>Created Time</th><th>详情</th></tr></thead>
+                <tbody>
+                    <tr><td>3001</td><td>1001</td><td>SKU-001</td><td>0</td><td>100</td><td>OPEN</td><td>GOOD</td><td>INSERT</td><td>2026-01-13 08:00</td><td><a class="link" onclick="showLogDetail(3001)">快照</a></td></tr>
+                    <tr><td>3002</td><td>1001</td><td>SKU-001</td><td>100</td><td>70</td><td>PICKED</td><td>GOOD</td><td>MOVE</td><td>2026-01-13 10:00</td><td><a class="link" onclick="showLogDetail(3002)">快照</a></td></tr>
+                </tbody>
+            </table>
+            <div class="pagination"><span>共 420 条</span><button class="page-btn">‹</button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">›</button></div>
+        </div>`,
+    // ==================== LP管理页面 ====================
+    lp: `
+        <div class="card">
+            <div class="card-title">LP 查询</div>
+            <div class="form-row">
+                <div class="form-group"><label>LP</label><input type="text" placeholder="lpId"></div>
+                <div class="form-group"><label>Type</label><select><option value="">全部</option><option>ILP</option><option>HLP</option><option>CLP</option><option>SLP</option><option>TLP</option><option>RLP</option></select></div>
+                <div class="form-group"><label>Status</label><select><option value="">全部</option><option>NEW</option><option>OPEN</option><option>ON_HOLD</option><option>SHIPPED</option></select></div>
+                <div class="form-group"><label>Location</label><input type="text" placeholder="选择库位"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary">查询</button>
+                <button class="btn btn-default">重置</button>
+                <button class="btn btn-success" onclick="showLpCreate()">新建 LP</button>
+                <button class="btn btn-default">批量创建</button>
+            </div>
+        </div>
+        <div class="stats-row">
+            <div class="stat-card"><div class="label">LP 总量</div><div class="value">2,456</div></div>
+            <div class="stat-card"><div class="label">ILP</div><div class="value">1,200</div></div>
+            <div class="stat-card"><div class="label">CLP</div><div class="value">856</div></div>
+            <div class="stat-card"><div class="label">TLP</div><div class="value">400</div></div>
+        </div>
+        <div class="card">
+            <div class="card-title">LP 列表</div>
+            <div style="overflow-x:auto;">
+            <table class="data-table">
+                <thead><tr><th>ID</th><th>Type</th><th>Location</th><th>Status</th><th>Hlp Category</th><th>Hlp Reference</th><th>Length</th><th>Width</th><th>Height</th><th>Linear Unit</th><th>Actions</th></tr></thead>
+                <tbody>
+                    <tr><td>ILP-001</td><td><span class="tag tag-info">ILP</span></td><td>A-01-01</td><td><span class="tag tag-success">OPEN</span></td><td>STANDARD</td><td>HLP-001</td><td>40</td><td>30</td><td>20</td><td>CM</td><td><a class="link" onclick="showLpDetail('ILP-001')">详情</a></td></tr>
+                    <tr><td>CLP-001</td><td><span class="tag tag-warning">CLP</span></td><td>PICK-01</td><td><span class="tag tag-warning">PICKED</span></td><td>CONTAINER</td><td>-</td><td>30</td><td>25</td><td>15</td><td>CM</td><td><a class="link" onclick="showLpDetail('CLP-001')">详情</a></td></tr>
+                    <tr><td>TLP-001</td><td><span class="tag tag-success">TLP</span></td><td>PACK-01</td><td><span class="tag tag-info">PACKED</span></td><td>TRAILER</td><td>HLP-009</td><td>60</td><td>40</td><td>40</td><td>CM</td><td><a class="link" onclick="showLpDetail('TLP-001')">详情</a></td></tr>
+                </tbody>
+            </table>
+            </div>
+            <div class="pagination"><span>共 2,456 条</span><button class="page-btn">?</button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">?</button></div>
+        </div>`,
+    // ==================== 调整单管理页面 ====================
+    adjustment: `
+        <div class="card">
+            <div class="card-title">调整单查询</div>
+            <div class="form-row">
+                <div class="form-group"><label>Adjustment ID</label><input type="text" placeholder="ADJ-00001"></div>
+                <div class="form-group"><label>Customer</label><select><option value="">全部</option><option>CUST001</option><option>CUST002</option></select></div>
+                <div class="form-group"><label>Status</label><select><option value="">全部</option><option>NEW</option><option>APPROVED</option><option>DECLINED</option></select></div>
+                <div class="form-group"><label>Reason</label><input type="text" placeholder="CYCLE_COUNT"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Created Time</label><input type="date"></div>
+                <div class="form-group"><label>To</label><input type="date"></div>
+                <div class="form-group"></div>
+                <div class="form-group"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary">查询</button>
+                <button class="btn btn-default">重置</button>
+                <button class="btn btn-success" onclick="showPage('adjustment-create')">新建调整单</button>
+                <button class="btn btn-default">批量审批</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">调整单列表</div>
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th><input type="checkbox"></th>
+                    <th>Adjustment ID</th><th>Customer</th><th>Status</th><th>Reason</th><th>Note</th>
+                    <th>Created By</th><th>Created Time</th><th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td>ADJ-00012</td><td>CUST001</td><td><span class="tag tag-warning">NEW</span></td>
+                        <td>CYCLE_COUNT</td><td>盘点差异调整</td><td>admin</td><td>2026-01-13 10:00</td>
+                        <td><a class="link" onclick="showPage('adjustment-edit')">编辑</a><a class="link">审批</a></td>
+                    </tr>
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td>ADJ-00011</td><td>CUST002</td><td><span class="tag tag-success">APPROVED</span></td>
+                        <td>DAMAGE</td><td>破损处理</td><td>lisa</td><td>2026-01-12 16:30</td>
+                        <td><a class="link">详情</a></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="pagination"><span>共 56 条</span><button class="page-btn">?</button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">?</button></div>
+        </div>`,
+    // ==================== 创建调整单页面 ====================
+    'adjustment-create': `
+        <div style="margin-bottom:15px;"><button class="btn btn-default" onclick="showPage('adjustment')">返回调整单列表</button></div>
+        <div class="card">
+            <div class="card-title">调整单基本信息</div>
+            <div class="form-row">
+                <div class="form-group"><label>客户 ID <span style="color:var(--tag-danger);">*</span></label><select><option value="">请选择客户</option><option>CUST001</option><option>CUST002</option></select></div>
+                <div class="form-group"><label>原因 <span style="color:var(--tag-danger);">*</span></label><select><option value="">请选择原因</option><option>CYCLE_COUNT</option><option>DAMAGE</option><option>RETURN</option><option>CORRECTION</option><option>OTHER</option></select></div>
+                <div class="form-group" style="flex:2;"><label>备注</label><input type="text" placeholder="note"></div>
+                <div class="form-group"><label>立即审批</label><select><option>false</option><option>true</option></select></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">新增调整行</div>
+            <div style="font-size:12px;color:var(--muted);margin:8px 0 12px;">
+                调整类型可切换用于查询与添加，不影响已添加的明细行类型。
+            </div>
+            <div class="adjustment-line-layout" data-adjustment-scope data-adjustment-type="ADJUST_QTY">
+                <div class="adjustment-line-main">
+                    <div class="card" style="box-shadow:none;border:1px solid var(--border);margin-bottom:16px;">
+                        <div class="card-title">库存查询</div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Title</label><select><option value="">Select</option><option>Title-A</option><option>Title-B</option></select></div>
+                            <div class="form-group"><label>Item</label><select><option value="">Select</option><option>SKU-001</option><option>SKU-002</option></select></div>
+                            <div class="form-group"><label>LP</label><input type="text" placeholder="LP"></div>
+                            <div class="form-group"><label>Inventory Status</label><select><option value="">Select</option><option>OPEN</option><option>PICKED</option><option>PACKED</option></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Location</label><select><option value="">Select</option><option>A-01-01</option><option>B-01-02</option></select></div>
+                            <div class="form-group"><label>Goods Type</label><select><option value="">Select</option><option>GOOD</option><option>DAMAGE</option></select></div>
+                            <div class="form-group"><label>Receipt ID</label><input type="text" placeholder="Enter Receipt ID"></div>
+                            <div class="form-group"><label>Lot No</label><input type="text" placeholder="Enter Lot No"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>External LPN</label><input type="text" placeholder="External LPN"></div>
+                            <div class="form-group"><label>SN</label><input type="text" placeholder="Enter SN"></div>
+                            <div class="form-group"></div>
+                            <div class="form-group"></div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-primary">Search</button>
+                            <button class="btn btn-default">Reset</button>
+                        </div>
+                    </div>
+                    <div class="bulk-actions">
+                        <div class="form-group" data-search-field="adjustQty"><label>批量 Qty Adjust To (option)</label><input type="number" data-bulk-field="adjustQty" placeholder="Qty Adjust To (option)"></div>
+                        <div class="form-group" data-search-field="adjustQty2"><label>批量 Qty2 Adjust To</label><input type="number" data-bulk-field="adjustQty2" placeholder="Qty2 Adjust To"></div>
+                        <div class="form-group" data-search-field="adjustStatus"><label>批量 Status Adjust To</label><select data-bulk-field="adjustStatus"><option value="">Select</option><option>OPEN</option><option>DAMAGE</option></select></div>
+                        <div class="form-group" data-search-field="adjustTitle"><label>批量 Title Adjust To</label><input type="text" data-bulk-field="adjustTitle" placeholder="Title Adjust To"></div>
+                        <div class="form-group" data-search-field="adjustGoodsType"><label>批量 Goods Type Adjust To</label><select data-bulk-field="adjustGoodsType"><option value="">Select</option><option>GOOD</option><option>DAMAGE</option><option>NEAR_EXPIRY</option></select></div>
+                        <div class="form-group" data-search-field="adjustLotNo"><label>批量 Lot No Adjust To</label><input type="text" data-bulk-field="adjustLotNo" placeholder="Lot No Adjust To"></div>
+                        <div class="form-group" data-search-field="adjustExpirationDate"><label>批量 Expiration Adjust To</label><input type="date" data-bulk-field="adjustExpirationDate"></div>
+                        <div class="form-group" data-search-field="adjustMfgDate"><label>批量 Mfg Date Adjust To</label><input type="date" data-bulk-field="adjustMfgDate"></div>
+                        <div class="form-group" data-search-field="adjustLp"><label>批量 LP Adjust To</label><input type="text" data-bulk-field="adjustLp" placeholder="LP Adjust To"></div>
+                        <div class="form-group" data-search-field="adjustLocation"><label>批量 Location Adjust To</label><input type="text" data-bulk-field="adjustLocation" placeholder="Location Adjust To"></div>
+                        <button class="btn btn-default btn-sm" onclick="copyFirstSelectedAdjustments('#adjustmentSearchTable')">复制首行到已选</button>
+                        <button class="btn btn-primary btn-sm" onclick="applyBulkAdjustments('[data-adjustment-scope]', '#adjustmentSearchTable')">应用到已选</button>
+                    </div>
+                    <div class="table-wrap" data-search-table="inventory">
+                        <table class="data-table data-table-compact" id="adjustmentSearchTable">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" onclick="toggleAllSelection(this, '#adjustmentSearchTable')"></th>
+                                    <th>Item</th><th>Qty</th><th>UOM</th><th>Dual Qty</th><th>Dual UOM</th>
+                                    <th>Location</th><th>Customer</th><th>LP</th><th>Title</th><th>Status</th>
+                                    <th>Type</th><th>Lot#</th><th>Expiration Date</th><th>Mfg Date</th><th>Origin Qty</th>
+                                    <th data-search-field="adjustQty">Qty Adjust To (option)</th>
+                                    <th data-search-field="adjustQty2">Qty2 Adjust To</th>
+                                    <th data-search-field="adjustStatus">Status Adjust To</th>
+                                    <th data-search-field="adjustTitle">Title Adjust To</th>
+                                    <th data-search-field="adjustGoodsType">Goods Type Adjust To</th>
+                                    <th data-search-field="adjustLotNo">Lot No Adjust To</th>
+                                    <th data-search-field="adjustExpirationDate">Expiration Adjust To</th>
+                                    <th data-search-field="adjustMfgDate">Mfg Date Adjust To</th>
+                                    <th data-search-field="adjustLp">LP Adjust To</th>
+                                    <th data-search-field="adjustLocation">Location Adjust To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr data-item-id="SKU-001" data-lp-id="LP-1001" data-location-id="A-01-01" data-title-id="T001" data-lot-no="LOT-001" data-sn="SN-001" data-status="OPEN" data-goods-type="GOOD">
+                                    <td><input type="checkbox"></td>
+                                    <td>SKU-001</td><td>120</td><td>EA</td><td>10</td><td>CS</td>
+                                    <td>A-01-01</td><td>LtestAA</td><td>LP-1001</td><td>T001</td><td>OPEN</td>
+                                    <td>GOOD</td><td>LOT-001</td><td>2027-06-30</td><td>2026-06-30</td>
+                                    <td>120</td>
+                                    <td data-search-field="adjustQty"><input type="number" style="width:80px;" value="110"></td>
+                                    <td data-search-field="adjustQty2"><input type="number" style="width:80px;" value="9"></td>
+                                    <td data-search-field="adjustStatus"><select style="width:120px;"><option>OPEN</option><option>DAMAGE</option></select></td>
+                                    <td data-search-field="adjustTitle"><input type="text" style="width:120px;" value="T001"></td>
+                                    <td data-search-field="adjustGoodsType"><select style="width:140px;"><option>GOOD</option><option>DAMAGE</option><option>NEAR_EXPIRY</option></select></td>
+                                    <td data-search-field="adjustLotNo"><input type="text" style="width:120px;" value="LOT-001A"></td>
+                                    <td data-search-field="adjustExpirationDate"><input type="date" style="width:140px;" value="2027-07-01"></td>
+                                    <td data-search-field="adjustMfgDate"><input type="date" style="width:140px;" value="2026-07-01"></td>
+                                    <td data-search-field="adjustLp"><input type="text" style="width:120px;" value="LP-9001"></td>
+                                    <td data-search-field="adjustLocation"><input type="text" style="width:140px;" value="B-01-01"></td>
+                                </tr>
+                                <tr data-item-id="SKU-002" data-lp-id="LP-2003" data-location-id="B-01-02" data-title-id="T002" data-lot-no="LOT-009" data-sn="SN-009" data-status="OPEN" data-goods-type="DAMAGE">
+                                    <td><input type="checkbox"></td>
+                                    <td>SKU-002</td><td>40</td><td>EA</td><td>-</td><td>-</td>
+                                    <td>B-01-02</td><td>LtestAA</td><td>LP-2003</td><td>T002</td><td>OPEN</td>
+                                    <td>DAMAGE</td><td>LOT-009</td><td>2027-12-20</td><td>2026-12-20</td>
+                                    <td>40</td>
+                                    <td data-search-field="adjustQty"><input type="number" style="width:80px;" value="38"></td>
+                                    <td data-search-field="adjustQty2"><input type="number" style="width:80px;" value=""></td>
+                                    <td data-search-field="adjustStatus"><select style="width:120px;"><option>OPEN</option><option>DAMAGE</option></select></td>
+                                    <td data-search-field="adjustTitle"><input type="text" style="width:120px;" value="T002"></td>
+                                    <td data-search-field="adjustGoodsType"><select style="width:140px;"><option>GOOD</option><option>DAMAGE</option><option>NEAR_EXPIRY</option></select></td>
+                                    <td data-search-field="adjustLotNo"><input type="text" style="width:120px;" value="LOT-009A"></td>
+                                    <td data-search-field="adjustExpirationDate"><input type="date" style="width:140px;" value="2027-12-21"></td>
+                                    <td data-search-field="adjustMfgDate"><input type="date" style="width:140px;" value="2026-12-21"></td>
+                                    <td data-search-field="adjustLp"><input type="text" style="width:120px;" value="LP-9002"></td>
+                                    <td data-search-field="adjustLocation"><input type="text" style="width:140px;" value="C-01-02"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-wrap field-hidden" data-search-table="lp">
+                        <table class="data-table data-table-compact" id="adjustmentSearchTableLp">
+                            <thead>
+                                <tr>
+                                    <th></th><th><input type="checkbox" onclick="toggleAllSelection(this, '#adjustmentSearchTableLp')"></th>
+                                    <th>LP</th><th>CS Pack Qty</th><th>UOM2</th><th>Description</th><th>Container/Trailer#</th><th>Location Tag</th><th>External LPN</th><th>Tote ID</th>
+                                    <th data-search-field="adjustLocation">Location Adjust To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>▾</td><td><input type="checkbox"></td><td>HLP-00018</td><td>120</td><td>CS</td><td>Mixed SKU</td><td>CONT-09</td><td>TAG-A1</td><td>EXT-001</td><td>TOTE-01</td>
+                                    <td data-search-field="adjustLocation"><input type="text" style="width:140px;" value="A-02-01"></td>
+                                </tr>
+                                <tr class="adjustment-subtable">
+                                    <td colspan="11">
+                                        <table>
+                                            <thead>
+                                                <tr><th>Customer</th><th>Title</th><th>Lot#</th><th>Expiration Date</th><th>Remaining Shelf Life</th><th>Mfg Date</th><th>Item</th><th>Base Qty</th><th>Status</th><th>Type</th><th>SN</th><th>Original Location</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td>HA</td><td>OMRON</td><td>LOT-001</td><td>2027-06-30</td><td>365</td><td>2026-06-30</td><td>OMR-018</td><td>1000</td><td>Available</td><td>Good</td><td>SN-001</td><td>(A024)01-061</td></tr>
+                                                <tr><td>HA</td><td>OMRON</td><td>LOT-002</td><td>2027-08-30</td><td>365</td><td>2026-08-30</td><td>K0025092411</td><td>8800</td><td>Available</td><td>Good</td><td>SN-002</td><td>(A024)01-061</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card field-hidden" data-new-inventory-panel style="box-shadow:none;border:1px solid var(--border);margin-top:16px;">
+                        <div class="card-title">新增库存</div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Title</label><select data-new-inventory="titleId"><option value="">Select</option><option>FLAG & ANTHEM</option><option>HA</option></select></div>
+                            <div class="form-group"><label>Item</label><select data-new-inventory="itemId"><option value="">Select</option><option>beicatestha</option><option>SKU-001</option></select></div>
+                            <div class="form-group"><label>UOM</label><select data-new-inventory="uomId"><option>EA</option><option>CS</option></select></div>
+                            <div class="form-group"><label>Goods Type</label><select data-new-inventory="goodsType"><option>GOOD</option><option>DAMAGE</option><option>NEAR_EXPIRY</option></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Location</label><select data-new-inventory="locationId"><option value="">Select</option><option>(A001)00-001</option><option>A-01-01</option></select></div>
+                            <div class="form-group"><label>LP</label><div style="display:flex;gap:8px;align-items:center;"><input type="text" data-new-inventory="lpId" placeholder="I-LP" style="flex:1;"><button class="btn btn-default btn-sm" type="button">+ New LP</button></div></div>
+                            <div class="form-group"><label>Qty</label><input type="number" data-new-inventory="qty" value="1"></div>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;">
+                            <button class="btn btn-primary" onclick="addNewInventoryToAdjustment('[data-adjustment-scope]', '#adjustmentLineTable')">Add To Adjustment Line</button>
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+                        <button class="btn btn-primary" onclick="addSelectedInventoryToAdjustment('#adjustmentSearchTable', '#adjustmentLineTable')">Add To Adjustment Line</button>
+                    </div>
+                    <div class="card-title" style="margin-top:20px;">Adjustment Line</div>
+                    <table class="data-table" id="adjustmentLineTable">
+                <thead>
+                <tr>
+                    <th>类型</th><th>Item ID</th><th>LP ID</th><th>库位</th><th>Qty</th><th>Qty2</th><th>UOM</th>
+                    <th>Adjust From</th><th>Adjust To</th><th>To LP</th><th>To Location</th>
+                    <th>Title ID</th><th>Lot No</th><th>SN</th><th>Status</th><th>Goods Type</th><th>Mfg Date</th><th>Expiration</th><th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td data-field="type"><span class="tag tag-info">ADJUST_QTY</span></td>
+                        <td data-field="itemId"><input type="text" style="width:80px;" placeholder="SKU"></td>
+                        <td data-field="lpId"><input type="text" style="width:80px;" placeholder="LP"></td>
+                        <td data-field="locationId"><input type="text" style="width:80px;" placeholder="Location"></td>
+                        <td data-field="qty"><input type="number" style="width:60px;" value="10"></td>
+                        <td data-field="qty2"><input type="number" style="width:60px;" placeholder="Qty2"></td>
+                        <td data-field="uomId"><select style="width:60px;"><option>EA</option><option>CS</option></select></td>
+                        <td data-field="adjustFrom"><input type="text" style="width:90px;" placeholder="from"></td>
+                        <td data-field="adjustTo"><input type="text" style="width:90px;" placeholder="to"></td>
+                        <td data-field="toLpId"><input type="text" style="width:80px;" placeholder="LP"></td>
+                        <td data-field="toLocationId"><input type="text" style="width:90px;" placeholder="Location"></td>
+                        <td data-field="titleId"><input type="text" style="width:60px;" placeholder="Title"></td>
+                        <td data-field="lotNo"><input type="text" style="width:80px;" placeholder="Lot"></td>
+                        <td data-field="sn"><input type="text" style="width:80px;" placeholder="SN"></td>
+                        <td data-field="status"><select style="width:90px;"><option>OPEN</option><option>DAMAGE</option></select></td>
+                        <td data-field="goodsType"><select style="width:90px;"><option>GOOD</option><option>DAMAGE</option><option>NEAR_EXPIRY</option></select></td>
+                        <td data-field="mfgDate"><input type="date" style="width:130px;"></td>
+                        <td data-field="expirationDate"><input type="date" style="width:130px;"></td>
+                        <td data-field="actions"><a class="link" style="color:var(--tag-danger);">删除</a></td>
+                    </tr>
+                </tbody>
+            </table>
+                </div>
+                <div class="adjustment-type-panel">
+                    <div class="adjustment-type-title">调整类型</div>
+                    <div class="adjustment-tabs" data-adjustment-type-panel>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_LOCATION" onclick="setAdjustmentType(this)">Adjust Location</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_LP" onclick="setAdjustmentType(this)">Adjust LP</div>
+                        <div class="adjustment-tab active" data-adjustment-type="ADJUST_QTY" onclick="setAdjustmentType(this)">Adjust Qty</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_STATUS" onclick="setAdjustmentType(this)">Adjust Status</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_TITLE" onclick="setAdjustmentType(this)">Adjust Title</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_GOOD_TYPE" onclick="setAdjustmentType(this)">Adjust Goods Type</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_LOT_NO" onclick="setAdjustmentType(this)">Adjust Lot No</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_EXPIRATION_DATE" onclick="setAdjustmentType(this)">Adjust Expiration Date</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_MFG_DATE" onclick="setAdjustmentType(this)">Adjust Mfg Date</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADD_INVENTORY" onclick="setAdjustmentType(this)">New Inventory</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="text-align:right;margin-top:20px;">
+            <button class="btn btn-default" onclick="showPage('adjustment')">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;">保存</button>
+            <button class="btn btn-success" style="margin-left:10px;">保存并审批</button>
+        </div>`,
+
+    // ==================== 编辑调整单页面 ====================
+    'adjustment-edit': `
+        <div style="margin-bottom:15px;"><button class="btn btn-default" onclick="showPage('adjustment')">返回调整单列表</button></div>
+        <div class="card">
+            <div class="card-title">调整单基本信息 <span style="font-weight:normal;color:var(--muted);font-size:12px;">ADJ-00001</span></div>
+            <div class="form-row">
+                <div class="form-group"><label>客户 ID</label><input type="text" value="CUST001" disabled></div>
+                <div class="form-group"><label>原因</label><select><option>CYCLE_COUNT</option><option>DAMAGE</option><option>RETURN</option></select></div>
+                <div class="form-group" style="flex:2;"><label>备注</label><input type="text" value="盘点差异调整"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">新增调整行</div>
+            <div style="font-size:12px;color:var(--muted);margin:8px 0 12px;">
+                调整类型可切换用于查询与添加，不影响已添加的明细行类型。
+            </div>
+            <div class="adjustment-line-layout" data-adjustment-scope data-adjustment-type="ADJUST_STATUS">
+                <div class="adjustment-line-main">
+                    <div class="card" style="box-shadow:none;border:1px solid var(--border);margin-bottom:16px;">
+                        <div class="card-title">库存查询</div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Title</label><select><option value="">Select</option><option>Title-A</option><option>Title-B</option></select></div>
+                            <div class="form-group"><label>Item</label><select><option value="">Select</option><option>SKU-001</option><option>SKU-002</option></select></div>
+                            <div class="form-group"><label>LP</label><input type="text" placeholder="LP"></div>
+                            <div class="form-group"><label>Inventory Status</label><select><option value="">Select</option><option>OPEN</option><option>PICKED</option><option>PACKED</option></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Location</label><select><option value="">Select</option><option>A-01-01</option><option>B-01-02</option></select></div>
+                            <div class="form-group"><label>Goods Type</label><select><option value="">Select</option><option>GOOD</option><option>DAMAGE</option></select></div>
+                            <div class="form-group"><label>Receipt ID</label><input type="text" placeholder="Enter Receipt ID"></div>
+                            <div class="form-group"><label>Lot No</label><input type="text" placeholder="Enter Lot No"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>External LPN</label><input type="text" placeholder="External LPN"></div>
+                            <div class="form-group"><label>SN</label><input type="text" placeholder="Enter SN"></div>
+                            <div class="form-group"></div>
+                            <div class="form-group"></div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-primary">Search</button>
+                            <button class="btn btn-default">Reset</button>
+                        </div>
+                    </div>
+                    <div class="bulk-actions">
+                        <div class="form-group" data-search-field="adjustQty"><label>批量 Qty Adjust To (option)</label><input type="number" data-bulk-field="adjustQty" placeholder="Qty Adjust To (option)"></div>
+                        <div class="form-group" data-search-field="adjustQty2"><label>批量 Qty2 Adjust To</label><input type="number" data-bulk-field="adjustQty2" placeholder="Qty2 Adjust To"></div>
+                        <div class="form-group" data-search-field="adjustStatus"><label>批量 Status Adjust To</label><select data-bulk-field="adjustStatus"><option value="">Select</option><option>OPEN</option><option>DAMAGE</option></select></div>
+                        <div class="form-group" data-search-field="adjustTitle"><label>批量 Title Adjust To</label><input type="text" data-bulk-field="adjustTitle" placeholder="Title Adjust To"></div>
+                        <div class="form-group" data-search-field="adjustGoodsType"><label>批量 Goods Type Adjust To</label><select data-bulk-field="adjustGoodsType"><option value="">Select</option><option>GOOD</option><option>DAMAGE</option><option>NEAR_EXPIRY</option></select></div>
+                        <div class="form-group" data-search-field="adjustLotNo"><label>批量 Lot No Adjust To</label><input type="text" data-bulk-field="adjustLotNo" placeholder="Lot No Adjust To"></div>
+                        <div class="form-group" data-search-field="adjustExpirationDate"><label>批量 Expiration Adjust To</label><input type="date" data-bulk-field="adjustExpirationDate"></div>
+                        <div class="form-group" data-search-field="adjustMfgDate"><label>批量 Mfg Date Adjust To</label><input type="date" data-bulk-field="adjustMfgDate"></div>
+                        <div class="form-group" data-search-field="adjustLp"><label>批量 LP Adjust To</label><input type="text" data-bulk-field="adjustLp" placeholder="LP Adjust To"></div>
+                        <div class="form-group" data-search-field="adjustLocation"><label>批量 Location Adjust To</label><input type="text" data-bulk-field="adjustLocation" placeholder="Location Adjust To"></div>
+                        <button class="btn btn-default btn-sm" onclick="copyFirstSelectedAdjustments('#adjustmentSearchTableEdit')">复制首行到已选</button>
+                        <button class="btn btn-primary btn-sm" onclick="applyBulkAdjustments('[data-adjustment-scope]', '#adjustmentSearchTableEdit')">应用到已选</button>
+                    </div>
+                    <div class="table-wrap" data-search-table="inventory">
+                        <table class="data-table data-table-compact" id="adjustmentSearchTableEdit">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" onclick="toggleAllSelection(this, '#adjustmentSearchTableEdit')"></th>
+                                    <th>Item</th><th>Qty</th><th>UOM</th><th>Dual Qty</th><th>Dual UOM</th>
+                                    <th>Location</th><th>Customer</th><th>LP</th><th>Title</th><th>Status</th>
+                                    <th>Type</th><th>Lot#</th><th>Expiration Date</th><th>Mfg Date</th><th>Origin Qty</th>
+                                    <th data-search-field="adjustQty">Qty Adjust To (option)</th>
+                                    <th data-search-field="adjustQty2">Qty2 Adjust To</th>
+                                    <th data-search-field="adjustStatus">Status Adjust To</th>
+                                    <th data-search-field="adjustTitle">Title Adjust To</th>
+                                    <th data-search-field="adjustGoodsType">Goods Type Adjust To</th>
+                                    <th data-search-field="adjustLotNo">Lot No Adjust To</th>
+                                    <th data-search-field="adjustExpirationDate">Expiration Adjust To</th>
+                                    <th data-search-field="adjustMfgDate">Mfg Date Adjust To</th>
+                                    <th data-search-field="adjustLp">LP Adjust To</th>
+                                    <th data-search-field="adjustLocation">Location Adjust To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr data-item-id="SKU-003" data-lp-id="LP-3003" data-location-id="C-01-01" data-title-id="T003" data-lot-no="LOT-100" data-sn="SN-100" data-status="OPEN" data-goods-type="GOOD">
+                                    <td><input type="checkbox"></td>
+                                    <td>SKU-003</td><td>50</td><td>EA</td><td>-</td><td>-</td>
+                                    <td>C-01-01</td><td>CUST001</td><td>LP-3003</td><td>T003</td><td>OPEN</td>
+                                    <td>GOOD</td><td>LOT-100</td><td>2027-11-20</td><td>2026-11-20</td>
+                                    <td>50</td>
+                                    <td data-search-field="adjustQty"><input type="number" style="width:80px;" value="48"></td>
+                                    <td data-search-field="adjustQty2"><input type="number" style="width:80px;" value=""></td>
+                                    <td data-search-field="adjustStatus"><select style="width:120px;"><option>OPEN</option><option>DAMAGE</option></select></td>
+                                    <td data-search-field="adjustTitle"><input type="text" style="width:120px;" value="T003"></td>
+                                    <td data-search-field="adjustGoodsType"><select style="width:140px;"><option>GOOD</option><option>DAMAGE</option><option>NEAR_EXPIRY</option></select></td>
+                                    <td data-search-field="adjustLotNo"><input type="text" style="width:120px;" value="LOT-100A"></td>
+                                    <td data-search-field="adjustExpirationDate"><input type="date" style="width:140px;" value="2027-11-21"></td>
+                                    <td data-search-field="adjustMfgDate"><input type="date" style="width:140px;" value="2026-11-21"></td>
+                                    <td data-search-field="adjustLp"><input type="text" style="width:120px;" value="LP-9903"></td>
+                                    <td data-search-field="adjustLocation"><input type="text" style="width:140px;" value="C-02-01"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-wrap field-hidden" data-search-table="lp">
+                        <table class="data-table data-table-compact" id="adjustmentSearchTableLpEdit">
+                            <thead>
+                                <tr>
+                                    <th></th><th><input type="checkbox" onclick="toggleAllSelection(this, '#adjustmentSearchTableLpEdit')"></th>
+                                    <th>LP</th><th>CS Pack Qty</th><th>UOM2</th><th>Description</th><th>Container/Trailer#</th><th>Location Tag</th><th>External LPN</th><th>Tote ID</th>
+                                    <th data-search-field="adjustLocation">Location Adjust To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>▾</td><td><input type="checkbox"></td><td>HLP-0019</td><td>200</td><td>CS</td><td>Mixed SKU</td><td>CONT-11</td><td>TAG-B2</td><td>EXT-009</td><td>TOTE-11</td>
+                                    <td data-search-field="adjustLocation"><input type="text" style="width:140px;" value="B-02-01"></td>
+                                </tr>
+                                <tr class="adjustment-subtable">
+                                    <td colspan="11">
+                                        <table>
+                                            <thead>
+                                                <tr><th>Customer</th><th>Title</th><th>Lot#</th><th>Expiration Date</th><th>Remaining Shelf Life</th><th>Mfg Date</th><th>Item</th><th>Base Qty</th><th>Status</th><th>Type</th><th>SN</th><th>Original Location</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td>HA</td><td>OMRON</td><td>LOT-101</td><td>2027-09-30</td><td>365</td><td>2026-09-30</td><td>OMR-019</td><td>900</td><td>Available</td><td>Good</td><td>SN-011</td><td>(A024)02-061</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card field-hidden" data-new-inventory-panel style="box-shadow:none;border:1px solid var(--border);margin-top:16px;">
+                        <div class="card-title">新增库存</div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Title</label><select data-new-inventory="titleId"><option value="">Select</option><option>FLAG & ANTHEM</option><option>HA</option></select></div>
+                            <div class="form-group"><label>Item</label><select data-new-inventory="itemId"><option value="">Select</option><option>beicatestha</option><option>SKU-003</option></select></div>
+                            <div class="form-group"><label>UOM</label><select data-new-inventory="uomId"><option>EA</option><option>CS</option></select></div>
+                            <div class="form-group"><label>Goods Type</label><select data-new-inventory="goodsType"><option>GOOD</option><option>DAMAGE</option><option>NEAR_EXPIRY</option></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Location</label><select data-new-inventory="locationId"><option value="">Select</option><option>(A001)00-001</option><option>C-01-01</option></select></div>
+                            <div class="form-group"><label>LP</label><div style="display:flex;gap:8px;align-items:center;"><input type="text" data-new-inventory="lpId" placeholder="I-LP" style="flex:1;"><button class="btn btn-default btn-sm" type="button">+ New LP</button></div></div>
+                            <div class="form-group"><label>Qty</label><input type="number" data-new-inventory="qty" value="1"></div>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;">
+                            <button class="btn btn-primary" onclick="addNewInventoryToAdjustment('[data-adjustment-scope]', '#adjustmentLineTableEdit')">Add To Adjustment Line</button>
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+                        <button class="btn btn-primary" onclick="addSelectedInventoryToAdjustment('#adjustmentSearchTableEdit', '#adjustmentLineTableEdit')">Add To Adjustment Line</button>
+                    </div>
+                    <div class="card-title" style="margin-top:20px;">Adjustment Line</div>
+                    <table class="data-table" id="adjustmentLineTableEdit">
+                <thead>
+                <tr>
+                    <th>类型</th><th>Item ID</th><th>LP ID</th><th>库位</th><th>Qty</th><th>Qty2</th><th>UOM</th>
+                    <th>Adjust From</th><th>Adjust To</th><th>To LP</th><th>To Location</th>
+                    <th>Title ID</th><th>Lot No</th><th>SN</th><th>Status</th><th>Goods Type</th><th>Mfg Date</th><th>Expiration</th><th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td data-field="type"><span class="tag tag-info">ADJUST_STATUS</span></td>
+                        <td data-field="itemId">SKU-001</td><td data-field="lpId">ILP-001</td><td data-field="locationId">A-01-01</td>
+                        <td data-field="qty"><input type="number" style="width:60px;" value="-10"></td><td data-field="qty2"><input type="number" style="width:60px;" value="-2"></td><td data-field="uomId">EA</td>
+                        <td data-field="adjustFrom">100</td><td data-field="adjustTo">90</td><td data-field="toLpId">-</td><td data-field="toLocationId">-</td>
+                        <td data-field="titleId">T001</td><td data-field="lotNo">LOT001</td><td data-field="sn">-</td><td data-field="status">OPEN</td><td data-field="goodsType">GOOD</td><td data-field="mfgDate">2024-01-01</td><td data-field="expirationDate">2027-01-01</td>
+                        <td data-field="actions"><a class="link" style="color:var(--tag-danger);">删除</a></td>
+                    </tr>
+                    <tr>
+                        <td data-field="type"><span class="tag tag-info">ADJUST_STATUS</span></td>
+                        <td data-field="itemId">SKU-002</td><td data-field="lpId">ILP-002</td><td data-field="locationId">A-01-02</td>
+                        <td data-field="qty"><input type="number" style="width:60px;" value="5"></td><td data-field="qty2"><input type="number" style="width:60px;" value="1"></td><td data-field="uomId">EA</td>
+                        <td data-field="adjustFrom">OPEN</td><td data-field="adjustTo">DAMAGE</td><td data-field="toLpId">-</td><td data-field="toLocationId">-</td>
+                        <td data-field="titleId">T001</td><td data-field="lotNo">LOT002</td><td data-field="sn">-</td><td data-field="status">OPEN</td><td data-field="goodsType">GOOD</td><td data-field="mfgDate">2024-02-01</td><td data-field="expirationDate">2027-06-01</td>
+                        <td data-field="actions"><a class="link" style="color:var(--tag-danger);">删除</a></td>
+                    </tr>
+                </tbody>
+            </table>
+                </div>
+                <div class="adjustment-type-panel">
+                    <div class="adjustment-type-title">调整类型</div>
+                    <div class="adjustment-tabs" data-adjustment-type-panel>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_LOCATION" onclick="setAdjustmentType(this)">Adjust Location</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_LP" onclick="setAdjustmentType(this)">Adjust LP</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_QTY" onclick="setAdjustmentType(this)">Adjust Qty</div>
+                        <div class="adjustment-tab active" data-adjustment-type="ADJUST_STATUS" onclick="setAdjustmentType(this)">Adjust Status</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_TITLE" onclick="setAdjustmentType(this)">Adjust Title</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_GOOD_TYPE" onclick="setAdjustmentType(this)">Adjust Goods Type</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_LOT_NO" onclick="setAdjustmentType(this)">Adjust Lot No</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_EXPIRATION_DATE" onclick="setAdjustmentType(this)">Adjust Expiration Date</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADJUST_MFG_DATE" onclick="setAdjustmentType(this)">Adjust Mfg Date</div>
+                        <div class="adjustment-tab" data-adjustment-type="ADD_INVENTORY" onclick="setAdjustmentType(this)">New Inventory</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="text-align:right;margin-top:20px;">
+            <button class="btn btn-default" onclick="showPage('adjustment')">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;">保存</button>
+            <button class="btn btn-success" style="margin-left:10px;">保存并审批</button>
+        </div>`,
+    // ==================== 动态属性映射页面 ====================
+    'dyn-property-mapping': `
+        <div class="card">
+            <div class="card-title">动态属性映射查询</div>
+            <div class="form-row">
+                <div class="form-group"><label>自定义字段</label><input type="text" placeholder="customField"></div>
+                <div class="form-group"><label>原始字段</label><input type="text" placeholder="originalField"></div>
+                <div class="form-group"><label>类型</label><select><option value="">全部</option><option>INVENTORY</option><option>LOCATION</option></select></div>
+                <div class="form-group"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary">查询</button>
+                <button class="btn btn-default">重置</button>
+                <button class="btn btn-success" onclick="showMappingCreate()">新建映射</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">映射配置列表</div>
+            <table class="data-table">
+                <thead><tr><th>ID</th><th>自定义字段</th><th>原始字段</th><th>类型</th><th>租户</th><th>Created Time</th><th>Updated Time</th><th>操作</th></tr></thead>
+                <tbody>
+                    <tr><td>1</td><td>生产批次</td><td>dyn_txt_property_value_01</td><td><span class="tag tag-info">INVENTORY</span></td><td>TENANT001</td><td>2026-01-01 00:00</td><td>2026-01-10 10:00</td><td><a class="link" onclick="showMappingEdit(1)">编辑</a><a class="link" style="color:var(--tag-danger);" onclick="showMappingDelete(1)">删除</a></td></tr>
+                    <tr><td>2</td><td>供应商编码</td><td>dyn_txt_property_value_02</td><td><span class="tag tag-info">INVENTORY</span></td><td>TENANT001</td><td>2026-01-01 00:00</td><td>2026-01-10 10:00</td><td><a class="link" onclick="showMappingEdit(2)">编辑</a><a class="link" style="color:var(--tag-danger);" onclick="showMappingDelete(2)">删除</a></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-title">字段显示配置</div>
+            <table class="data-table">
+                <thead><tr><th>ID</th><th>客户</th><th>模式</th><th>显示字段</th><th>操作</th></tr></thead>
+                <tbody>
+                    <tr><td>10</td><td>CUST001</td><td>WMS</td><td>itemId, qty, uomId, lpId, locationId</td><td><a class="link" onclick="showCustomizeFieldEdit(10)">编辑</a></td></tr>
+                    <tr><td>11</td><td>CUST002</td><td>WMS</td><td>itemId, qty, lotNo, sn</td><td><a class="link" onclick="showCustomizeFieldEdit(11)">编辑</a></td></tr>
+                </tbody>
+            </table>
+        </div>`
+};
+// ==================== 弹窗内容函数 ====================
+function showInventoryDetail(id) {
+    showModal(`
+        <div class="modal-title">库存详情 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="detail-row"><div class="detail-label">ID</div><div class="detail-value">${id}</div></div>
+        <div class="detail-row"><div class="detail-label">Item ID</div><div class="detail-value">SKU-001</div></div>
+        <div class="detail-row"><div class="detail-label">Qty / Base Qty</div><div class="detail-value">100 / 100</div></div>
+        <div class="detail-row"><div class="detail-label">UOM</div><div class="detail-value">EA</div></div>
+        <div class="detail-row"><div class="detail-label">LP ID</div><div class="detail-value">ILP-001</div></div>
+        <div class="detail-row"><div class="detail-label">Location ID</div><div class="detail-value">A-01-01</div></div>
+        <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value"><span class="tag tag-success">OPEN</span></div></div>
+        <div class="detail-row"><div class="detail-label">Title ID</div><div class="detail-value">T001</div></div>
+        <div class="detail-row"><div class="detail-label">Lot No</div><div class="detail-value">LOT20260101</div></div>
+        <div class="detail-row"><div class="detail-label">Type</div><div class="detail-value">GOOD</div></div>
+        <div class="detail-row"><div class="detail-label">Expiration Date</div><div class="detail-value">2027-01-01</div></div>
+        <div class="detail-row"><div class="detail-label">Mfg Date</div><div class="detail-value">2026-01-01</div></div>
+        <div class="detail-row"><div class="detail-label">Serial Number</div><div class="detail-value">-</div></div>
+        <div class="detail-row"><div class="detail-label">Customer ID</div><div class="detail-value">CUST001</div></div>
+        <div class="detail-row"><div class="detail-label">差异标记</div><div class="detail-value">WARNING</div></div>
+        <div class="detail-row"><div class="detail-label">Created Time</div><div class="detail-value">2026-01-10 08:00:00</div></div>
+        <div class="detail-row"><div class="detail-label">Updated Time</div><div class="detail-value">2026-01-13 10:00:00</div></div>
+    `);
+}
+
+function showInventoryMove(id) {
+    showModal(`
+        <div class="modal-title">库存移动 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>源库存 ID</label><input type="text" value="${id}" disabled></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>移动数量 <span style="color:var(--tag-danger);">*</span></label><input type="number" value="50" placeholder="moveInventoryQty"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>移动数量 (第二单位)</label><input type="number" placeholder="moveInventoryQty2"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>目标 LP ID <span style="color:var(--tag-danger);">*</span></label><input type="text" placeholder="to.lpId"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>目标库位 ID</label><input type="text" placeholder="to.locationId"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>目标状态</label><select><option value="">保持不变</option><option>OPEN</option><option>PICKED</option><option>PACKED</option></select></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>移动类型</label><select><option>MOVE</option><option>ADJUST_QTY</option></select></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>活动类型</label><select><option>MOVE</option><option>PICK</option><option>PACK</option></select></div>
+        <div style="text-align:right;margin-top:20px;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;" onclick="closeModal()">确认移动</button>
+        </div>
+    `);
+}
+
+function showInventoryStatusUpdate(id) {
+    showModal(`
+        <div class="modal-title">状态更新 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <p style="margin-bottom:15px;">库存 ID: ${id}</p>
+        <div class="form-group" style="margin-bottom:15px;"><label>目标状态</label><select><option>OPEN</option><option>PICKED</option><option>PACKED</option><option>LOADED</option><option>SHIPPED</option></select></div>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;" onclick="closeModal()">更新状态</button>
+        </div>
+    `);
+}
+
+function showInventoryDiscrepancy(id) {
+    showModal(`
+        <div class="modal-title">差异标记 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <p style="margin-bottom:15px;">库存 ID: ${id}</p>
+        <div class="form-group" style="margin-bottom:15px;"><label>标记类型</label><select><option>DISCREPANCY</option><option>WARNING</option></select></div>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;" onclick="closeModal()">保存标记</button>
+        </div>
+    `);
+}
+
+function showInventoryUomChange(id) {
+    showModal(`
+        <div class="modal-title">单位转换 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <p style="margin-bottom:15px;">库存 ID: ${id}</p>
+        <div class="form-group" style="margin-bottom:15px;"><label>目标单位</label><select><option>EA</option><option>CS</option></select></div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:15px;">仅允许同一 uomId 的库存合并转换，结果需为整数。</p>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;" onclick="closeModal()">执行转换</button>
+        </div>
+    `);
+}
+function showLogDetail(id) {
+    showModal(`
+        <div class="modal-title">日志快照 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="detail-row"><div class="detail-label">日志 ID</div><div class="detail-value">${id}</div></div>
+        <div class="detail-row"><div class="detail-label">变更前</div><div class="detail-value">{ qty: 100, status: OPEN }</div></div>
+        <div class="detail-row"><div class="detail-label">变更后</div><div class="detail-value">{ qty: 70, status: PICKED }</div></div>
+    `);
+}
+
+function showLockDetail(id) {
+    showModal(`
+        <div class="modal-title">库存锁定详情 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="detail-row"><div class="detail-label">ID</div><div class="detail-value">${id}</div></div>
+        <div class="detail-row"><div class="detail-label">Order ID</div><div class="detail-value">ORD-001</div></div>
+        <div class="detail-row"><div class="detail-label">Order Line ID</div><div class="detail-value">LINE-001</div></div>
+        <div class="detail-row"><div class="detail-label">Item ID</div><div class="detail-value">SKU-001</div></div>
+        <div class="detail-row"><div class="detail-label">Qty / Base Qty</div><div class="detail-value">30 / 30</div></div>
+        <div class="detail-row"><div class="detail-label">Available Base Qty</div><div class="detail-value">70</div></div>
+        <div class="detail-row"><div class="detail-label">UOM</div><div class="detail-value">EA</div></div>
+        <div class="detail-row"><div class="detail-label">Title ID</div><div class="detail-value">T001</div></div>
+        <div class="detail-row"><div class="detail-label">Lot No</div><div class="detail-value">LOT001</div></div>
+        <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value"><span class="tag tag-success">ACTIVE</span></div></div>
+        <div class="detail-row"><div class="detail-label">Customer ID</div><div class="detail-value">CUST001</div></div>
+        <div class="detail-row"><div class="detail-label">Created Time</div><div class="detail-value">2026-01-13 08:00:00</div></div>
+    `);
+}
+
+function showLockRelease(id) {
+    showModal(`
+        <div class="modal-title">释放库存锁定 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <p style="margin-bottom:20px;">确定释放锁定记录 ID: ${id} 吗？</p>
+        <p style="margin-bottom:20px;color:var(--muted);">释放后，锁定状态将变为 INACTIVE。</p>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-danger" style="margin-left:10px;" onclick="closeModal()">确认释放</button>
+        </div>
+    `);
+}
+
+function showLpDetail(id) {
+    showModal(`
+        <div class="modal-title">LP 详情 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="detail-row"><div class="detail-label">LP ID</div><div class="detail-value">${id}</div></div>
+        <div class="detail-row"><div class="detail-label">Type</div><div class="detail-value"><span class="tag tag-info">ILP</span></div></div>
+        <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value"><span class="tag tag-success">OPEN</span></div></div>
+        <div class="detail-row"><div class="detail-label">Location ID</div><div class="detail-value">A-01-01</div></div>
+        <div class="detail-row"><div class="detail-label">Parent LP</div><div class="detail-value">HLP-001</div></div>
+        <div class="detail-row"><div class="detail-label">External LPN</div><div class="detail-value">EXT-001</div></div>
+        <div class="detail-row"><div class="detail-label">Customer ID</div><div class="detail-value">CUST001</div></div>
+        <div class="detail-row"><div class="detail-label">Created Time</div><div class="detail-value">2026-01-10 08:00:00</div></div>
+        <div style="margin-top:20px;padding-top:15px;border-top:1px solid var(--border);">
+            <div style="font-weight:600;margin-bottom:10px;">LP 内库存 (2条)</div>
+            <table class="data-table" style="font-size:12px;">
+                <thead><tr><th>Item ID</th><th>Qty</th><th>Status</th><th>Lot No</th></tr></thead>
+                <tbody>
+                    <tr><td>SKU-001</td><td>100</td><td><span class="tag tag-success">OPEN</span></td><td>LOT001</td></tr>
+                    <tr><td>SKU-002</td><td>50</td><td><span class="tag tag-success">OPEN</span></td><td>LOT002</td></tr>
+                </tbody>
+            </table>
+        </div>
+    `);
+}
+
+function showLpMove(id) {
+    showModal(`
+        <div class="modal-title">LP 移动 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>LP ID</label><input type="text" value="${id}" disabled></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>目标库位 ID <span style="color:var(--tag-danger);">*</span></label><input type="text" placeholder="locationId"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>目标父 LP</label><input type="text" placeholder="parentLpId"></div>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:15px;">移动后，LP 内库存库位同步更新。</p>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;" onclick="closeModal()">确认移动</button>
+        </div>
+    `);
+}
+
+function showLpDelete(id) {
+    showModal(`
+        <div class="modal-title">删除 LP <span class="modal-close" onclick="closeModal()">×</span></div>
+        <p style="margin-bottom:20px;">确定删除 LP: ${id} 吗？</p>
+        <p style="margin-bottom:20px;color:var(--tag-warning);">若 LP 内有库存，将自动创建调整单将数量调整为 0。</p>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-danger" style="margin-left:10px;" onclick="closeModal()">确认删除</button>
+        </div>
+    `);
+}
+
+function showLpCreate() {
+    showModal(`
+        <div class="modal-title">新建 LP <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>LP 类型 <span style="color:var(--tag-danger);">*</span></label><select><option value="">请选择类型</option><option>ILP</option><option>HLP</option><option>CLP</option><option>SLP</option><option>TLP</option><option>RLP</option></select></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>LP 前缀</label><input type="text" placeholder="lpPrefix"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>库位 ID</label><input type="text" placeholder="locationId"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>外部 LPN</label><input type="text" placeholder="externalLPN"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>创建数量</label><input type="number" value="1" min="1" placeholder="count"></div>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;" onclick="closeModal()">创建</button>
+        </div>
+    `);
+}
+function showAdjustmentDetail(id) {
+    showModal(`
+        <div class="modal-title">调整单详情 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="detail-row"><div class="detail-label">Adjustment ID</div><div class="detail-value">${id}</div></div>
+        <div class="detail-row"><div class="detail-label">Customer ID</div><div class="detail-value">CUST001</div></div>
+        <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value"><span class="tag tag-warning">NEW</span></div></div>
+        <div class="detail-row"><div class="detail-label">Reason</div><div class="detail-value">CYCLE_COUNT</div></div>
+        <div class="detail-row"><div class="detail-label">Note</div><div class="detail-value">盘点差异调整</div></div>
+        <div class="detail-row"><div class="detail-label">Created By</div><div class="detail-value">admin</div></div>
+        <div class="detail-row"><div class="detail-label">Created Time</div><div class="detail-value">2026-01-13 10:00:00</div></div>
+        <div style="margin-top:20px;padding-top:15px;border-top:1px solid var(--border);">
+            <div style="font-weight:600;margin-bottom:10px;">调整行 (3条)</div>
+            <table class="data-table" style="font-size:12px;">
+                <thead><tr><th>Type</th><th>Item ID</th><th>LP ID</th><th>Qty</th><th>Status</th></tr></thead>
+                <tbody>
+                    <tr><td>ADJUST_QTY</td><td>SKU-001</td><td>ILP-001</td><td>-10</td><td>OPEN</td></tr>
+                    <tr><td>ADJUST_QTY</td><td>SKU-002</td><td>ILP-002</td><td>+5</td><td>OPEN</td></tr>
+                    <tr><td>ADJUST_STATUS</td><td>SKU-003</td><td>ILP-003</td><td>0</td><td>OPEN→DAMAGE</td></tr>
+                </tbody>
+            </table>
+        </div>
+    `);
+}
+
+function showAdjustmentApprove(id) {
+    showModal(`
+        <div class="modal-title">审批调整单 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <p style="margin-bottom:15px;">确认审批调整单: ${id} 吗？</p>
+        <div style="background:#f8f5ef;padding:15px;border-radius:10px;margin-bottom:20px;">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">调整内容预览：</div>
+            <div style="font-size:12px;">- SKU-001: 数量 -10</div>
+            <div style="font-size:12px;">- SKU-002: 数量 +5</div>
+            <div style="font-size:12px;">- SKU-003: 状态 OPEN → DAMAGE</div>
+        </div>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:15px;">审批后将自动执行库存调整。</p>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-success" style="margin-left:10px;" onclick="closeModal()">确认审批</button>
+        </div>
+    `);
+}
+
+function showMappingCreate() {
+    showModal(`
+        <div class="modal-title">新建动态属性映射 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>自定义字段 <span style="color:var(--tag-danger);">*</span></label><input type="text" placeholder="customField"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>原始字段 <span style="color:var(--tag-danger);">*</span></label><select><option value="">选择字段</option><option>dyn_txt_property_value_01</option><option>dyn_txt_property_value_02</option><option>dyn_date_property_value_01</option></select></div>
+        <div class="form-group" style="margin-bottom:20px;"><label>类型 <span style="color:var(--tag-danger);">*</span></label><select><option>INVENTORY</option><option>LOCATION</option></select></div>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;" onclick="closeModal()">保存</button>
+        </div>
+    `);
+}
+
+function showMappingEdit(id) {
+    showModal(`
+        <div class="modal-title">编辑动态属性映射 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>自定义字段</label><input type="text" value="生产批次"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>原始字段</label><select><option>dyn_txt_property_value_01</option><option>dyn_txt_property_value_02</option></select></div>
+        <div class="form-group" style="margin-bottom:20px;"><label>类型</label><select><option selected>INVENTORY</option><option>LOCATION</option></select></div>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;" onclick="closeModal()">保存</button>
+        </div>
+    `);
+}
+
+function showMappingDelete(id) {
+    showModal(`
+        <div class="modal-title">删除映射配置 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <p style="margin-bottom:20px;">确定删除映射配置 ID: ${id} 吗？</p>
+        <p style="margin-bottom:20px;color:var(--muted);">删除后，动态字段将不再显示业务名称。</p>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-danger" style="margin-left:10px;" onclick="closeModal()">确认删除</button>
+        </div>
+    `);
+}
+
+function showCustomizeFieldEdit(id) {
+    showModal(`
+        <div class="modal-title">编辑字段显示配置 <span class="modal-close" onclick="closeModal()">×</span></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>客户 ID</label><input type="text" value="CUST001"></div>
+        <div class="form-group" style="margin-bottom:15px;"><label>模式</label><input type="text" value="WMS"></div>
+        <div class="form-group" style="margin-bottom:20px;"><label>显示字段</label><textarea rows="3">itemId, qty, uomId, lpId, locationId</textarea></div>
+        <div style="text-align:right;">
+            <button class="btn btn-default" onclick="closeModal()">取消</button>
+            <button class="btn btn-primary" style="margin-left:10px;" onclick="closeModal()">保存</button>
+        </div>
+    `);
+}
+function showPage(pageId) {
+    document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+    const menuItem = document.querySelector('.menu-item[onclick*="' + pageId + '"]');
+    if (menuItem) menuItem.classList.add('active');
+
+    const breadcrumbMap = {
+        'inventory': '库存 / 库存台账',
+        'inventory-import': '库存 / 批量导入',
+        'inventory-lock': '库存 / 库存锁定',
+        'inventory-activity': '库存 / 库存活动',
+        'inventory-log': '库存 / 库存日志',
+        'lp': '库存 / LP 容器',
+        'adjustment': '库存 / 调整单',
+        'adjustment-create': '库存 / 调整单 / 创建',
+        'adjustment-edit': '库存 / 调整单 / 编辑',
+        'dyn-property-mapping': '库存 / 动态属性映射'
+    };
+    document.getElementById('breadcrumb').textContent = breadcrumbMap[pageId] || '库存';
+    document.getElementById('content').innerHTML = pages[pageId] || '<div class="card">页面不存在</div>';
+    if (pageId === 'adjustment-create' || pageId === 'adjustment-edit') {
+        initAdjustmentLineFields('#content');
+    }
+}
+
+// 初始化显示库存页面
+showPage('inventory');
+</script>
+</body>
+</html>
+
+
+
+
+

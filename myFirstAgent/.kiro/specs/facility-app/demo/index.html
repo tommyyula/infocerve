@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facility 模块 - 前端原型 Demo</title>
+    <style>
+        :root {
+            --primary-color: #1890ff;
+            --success-color: #52c41a;
+            --warning-color: #fa8c16;
+            --error-color: #ff4d4f;
+            --text-color: #333;
+            --border-color: #d9d9d9;
+            --background-color: #f5f5f5;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: var(--background-color); }
+        .sidebar { width: 220px; background: #fff; height: 100vh; border-right: 1px solid var(--border-color); position: fixed; left: 0; top: 0; }
+        .sidebar h2 { padding: 16px 20px; margin: 0; color: var(--primary-color); font-size: 20px; border-bottom: 1px solid var(--border-color); }
+        .nav { padding: 10px; }
+        .nav button { display: block; width: 100%; margin: 5px 0; background: none; border: none; text-align: left; font-size: 15px; padding: 10px 12px; border-radius: 4px; color: var(--text-color); cursor: pointer; }
+        .nav button.active, .nav button:hover { background: var(--primary-color); color: #fff; }
+        .main { margin-left: 220px; padding: 24px; min-height: 100vh; }
+        .hidden { display: none !important; }
+        .page { background: #fff; border-radius: 8px; padding: 20px; min-height: 500px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
+        .page-header h3 { margin: 0; font-size: 18px; }
+        .tag { display: inline-block; margin-right: 6px; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #fff; }
+        .tag-blue { background: var(--primary-color); }
+        .tag-green { background: var(--success-color); }
+        .tag-orange { background: var(--warning-color); }
+        .tag-red { background: var(--error-color); }
+        .tag-gray { background: #999; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid var(--border-color); padding: 10px 12px; text-align: left; font-size: 14px; }
+        th { background: #fafafa; font-weight: 600; }
+        tr:hover { background: #f5f5f5; }
+        .btn { padding: 6px 16px; border: none; border-radius: 4px; background: var(--primary-color); color: #fff; cursor: pointer; font-size: 14px; margin-right: 6px; }
+        .btn:hover { background: #40a9ff; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        .btn-success { background: var(--success-color); }
+        .btn-warning { background: var(--warning-color); }
+        .btn-danger { background: var(--error-color); }
+        .btn-default { background: #fff; color: var(--text-color); border: 1px solid var(--border-color); }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); justify-content: center; align-items: flex-start; padding-top: 50px; overflow-y: auto; }
+        .modal.show { display: flex; }
+        .modal-content { background: #fff; padding: 24px; border-radius: 8px; width: 500px; max-width: 90%; margin-bottom: 50px; }
+        .modal-content h4 { margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+        .form-row { margin-bottom: 16px; }
+        .form-row label { display: block; margin-bottom: 6px; color: #333; font-size: 14px; }
+        .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; }
+        .form-row textarea { min-height: 80px; resize: vertical; }
+        .form-actions { margin-top: 20px; text-align: right; padding-top: 15px; border-top: 1px solid var(--border-color); }
+        .tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; }
+        .tabs button { background: none; border: none; padding: 10px 20px; cursor: pointer; font-size: 14px; color: var(--text-color); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+        .tabs button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tabs button:hover { color: var(--primary-color); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .detail-item { padding: 8px 0; }
+        .detail-item label { color: #666; font-size: 13px; display: block; margin-bottom: 4px; }
+        .detail-item span { font-size: 14px; color: #333; }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-bar input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; width: 200px; }
+        .search-bar select { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <h2>Facility 管理</h2>
+    <div class="nav">
+        <button onclick="showPage('equipment')" id="nav-equipment" class="active">设备管理</button>
+        <button onclick="showPage('location')" id="nav-location">库位管理</button>
+        <button onclick="showPage('vlg')" id="nav-vlg">虚拟位置组</button>
+        <button onclick="showPage('picktolight')" id="nav-picktolight">拣选灯管理</button>
+    </div>
+</div>
+<div class="main">
+    <!-- ========== 设备管理页面 ========== -->
+    <div class="page" id="page-equipment">
+        <div class="page-header">
+            <h3>设备管理</h3>
+            <div>
+                <button class="btn" onclick="showModal('modal-add-equipment')">新增设备</button>
+                <button class="btn btn-success" onclick="showModal('modal-batch-tote')">批量创建料箱</button>
+            </div>
+        </div>
+        <div class="search-bar">
+            <input type="text" placeholder="设备ID/条码" />
+            <select>
+                <option value="">全部类型</option>
+                <option value="TOTE">料箱 TOTE</option>
+                <option value="PALLET">托盘 PALLET</option>
+                <option value="CART">推车 CART</option>
+            </select>
+            <select>
+                <option value="">全部状态</option>
+                <option value="ACTIVE">激活 ACTIVE</option>
+                <option value="INACTIVE">禁用 INACTIVE</option>
+            </select>
+            <button class="btn">搜索</button>
+        </div>
+        <table>
+            <tr><th>设备ID</th><th>名称</th><th>条码</th><th>类型</th><th>状态</th><th>空间状态</th><th>填充率</th><th>位置</th><th>操作</th></tr>
+            <tr>
+                <td>TOTE-001</td><td>料箱001</td><td>TOTE001</td><td><span class="tag tag-blue">TOTE</span></td>
+                <td><span class="tag tag-green">ACTIVE</span></td><td><span class="tag tag-gray">EMPTY</span></td>
+                <td>0%</td><td>LOC-A01-01</td>
+                <td>
+                    <button class="btn btn-sm" onclick="showModal('modal-equipment-detail')">详情</button>
+                    <button class="btn btn-sm btn-warning" onclick="showModal('modal-fillrate')">填充率</button>
+                </td>
+            </tr>
+            <tr>
+                <td>TOTE-002</td><td>料箱002</td><td>TOTE002</td><td><span class="tag tag-blue">TOTE</span></td>
+                <td><span class="tag tag-green">ACTIVE</span></td><td><span class="tag tag-orange">PARTIAL</span></td>
+                <td>45%</td><td>LOC-A01-02</td>
+                <td>
+                    <button class="btn btn-sm" onclick="showModal('modal-equipment-detail')">详情</button>
+                    <button class="btn btn-sm btn-warning" onclick="showModal('modal-fillrate')">填充率</button>
+                </td>
+            </tr>
+            <tr>
+                <td>PALLET-001</td><td>托盘001</td><td>PLT001</td><td><span class="tag tag-green">PALLET</span></td>
+                <td><span class="tag tag-green">ACTIVE</span></td><td><span class="tag tag-red">FULL</span></td>
+                <td>100%</td><td>LOC-B02-01</td>
+                <td>
+                    <button class="btn btn-sm" onclick="showModal('modal-equipment-detail')">详情</button>
+                    <button class="btn btn-sm btn-warning" onclick="showModal('modal-fillrate')">填充率</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ========== 库位管理页面 ========== -->
+    <div class="page hidden" id="page-location">
+        <div class="page-header">
+            <h3>库位管理</h3>
+            <div>
+                <button class="btn" onclick="showModal('modal-add-location')">新增库位</button>
+                <button class="btn btn-success" onclick="showModal('modal-import-location')">批量导入</button>
+            </div>
+        </div>
+        <div class="search-bar">
+            <input type="text" placeholder="库位ID/名称" />
+            <select>
+                <option value="">全部类型</option>
+                <option value="STORAGE">存储位 STORAGE</option>
+                <option value="PICKING">拣选位 PICKING</option>
+                <option value="STAGING">暂存位 STAGING</option>
+                <option value="DOCK">月台 DOCK</option>
+            </select>
+            <select>
+                <option value="">全部状态</option>
+                <option value="ACTIVE">激活 ACTIVE</option>
+                <option value="INACTIVE">禁用 INACTIVE</option>
+                <option value="LOCKED">锁定 LOCKED</option>
+            </select>
+            <select>
+                <option value="">全部空间状态</option>
+                <option value="EMPTY">空闲 EMPTY</option>
+                <option value="PARTIAL">部分占用 PARTIAL</option>
+                <option value="FULL">已满 FULL</option>
+            </select>
+            <button class="btn">搜索</button>
+        </div>
+        <table>
+            <tr><th>库位ID</th><th>名称</th><th>类型</th><th>状态</th><th>空间状态</th><th>巷道</th><th>排</th><th>层</th><th>容量</th><th>操作</th></tr>
+            <tr>
+                <td>LOC-A01-01</td><td>A区01排01层</td><td><span class="tag tag-blue">STORAGE</span></td>
+                <td><span class="tag tag-green">ACTIVE</span></td><td><span class="tag tag-gray">EMPTY</span></td>
+                <td>A</td><td>01</td><td>1</td><td>1000</td>
+                <td>
+                    <button class="btn btn-sm" onclick="showModal('modal-location-detail')">详情</button>
+                    <button class="btn btn-sm btn-warning">锁定</button>
+                </td>
+            </tr>
+            <tr>
+                <td>LOC-A01-02</td><td>A区01排02层</td><td><span class="tag tag-blue">STORAGE</span></td>
+                <td><span class="tag tag-green">ACTIVE</span></td><td><span class="tag tag-orange">PARTIAL</span></td>
+                <td>A</td><td>01</td><td>2</td><td>1000</td>
+                <td>
+                    <button class="btn btn-sm" onclick="showModal('modal-location-detail')">详情</button>
+                    <button class="btn btn-sm btn-warning">锁定</button>
+                </td>
+            </tr>
+            <tr>
+                <td>LOC-B02-01</td><td>B区02排01层</td><td><span class="tag tag-green">PICKING</span></td>
+                <td><span class="tag tag-green">ACTIVE</span></td><td><span class="tag tag-red">FULL</span></td>
+                <td>B</td><td>02</td><td>1</td><td>500</td>
+                <td>
+                    <button class="btn btn-sm" onclick="showModal('modal-location-detail')">详情</button>
+                    <button class="btn btn-sm btn-warning">锁定</button>
+                </td>
+            </tr>
+            <tr>
+                <td>LOC-C01-01</td><td>C区暂存位01</td><td><span class="tag tag-orange">STAGING</span></td>
+                <td><span class="tag tag-gray">LOCKED</span></td><td><span class="tag tag-gray">EMPTY</span></td>
+                <td>C</td><td>01</td><td>1</td><td>2000</td>
+                <td>
+                    <button class="btn btn-sm" onclick="showModal('modal-location-detail')">详情</button>
+                    <button class="btn btn-sm btn-success">解锁</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ========== 虚拟位置组页面 ========== -->
+    <div class="page hidden" id="page-vlg"></div>td>
+        <div class="page-header">
+            <h3>虚拟位置组管理</h3>
+            <button class="btn" onclick="showModal('modal-add-vlg')">新增VLG</button>
+        </div>
+        <div class="tabs">
+            <button class="active" onclick="showVlgTab('vlg-list')">VLG列表</button>
+            <button onclick="showVlgTab('vlg-tags')">位置标签</button>
+            <button onclick="showVlgTab('vlg-customer')">客户分配</button>
+            <button onclick="showVlgTab('vlg-item')">物料关联</button>
+            <button onclick="showVlgTab('vlg-itemgroup')">物料组关联</button>
+            <button onclick="showVlgTab('vlg-title')">货主关联</button>
+        </div>
+        <!-- VLG 列表 Tab -->
+        <div class="tab-content active" id="tab-vlg-list">
+            <table>
+                <tr><th>ID</th><th>名称</th><th>类型</th><th>拣选类型</th><th>标签数</th><th>占用状态</th><th>操作</th></tr>
+                <tr>
+                    <td>1001</td><td>拣选区A</td><td><span class="tag tag-blue">PICKING_ZONE</span></td>
+                    <td>PIECE</td><td>3</td><td><span class="tag tag-gray">空闲</span></td>
+                    <td><button class="btn btn-sm" onclick="showModal('modal-vlg-detail')">详情</button></td>
+                </tr>
+                <tr>
+                    <td>1002</td><td>存储区B</td><td><span class="tag tag-green">STORAGE_ZONE</span></td>
+                    <td>PALLET</td><td>5</td><td><span class="tag tag-orange">占用中</span></td>
+                    <td><button class="btn btn-sm" onclick="showModal('modal-vlg-detail')">详情</button></td>
+                </tr>
+            </table>
+        </div>
+        <!-- 位置标签 Tab -->
+        <div class="tab-content" id="tab-vlg-tags">
+            <div style="margin-bottom:15px"><button class="btn" onclick="showModal('modal-add-tag')">新增标签</button></div>
+            <table>
+                <tr><th>ID</th><th>标签名称</th><th>描述</th><th>关联库位数</th><th>操作</th></tr>
+                <tr><td>1</td><td>冷链区</td><td>温控存储区域</td><td>20</td><td><button class="btn btn-sm" onclick="showModal('modal-tag-detail')">详情</button></td></tr>
+                <tr><td>2</td><td>高架区</td><td>高层货架区域</td><td>50</td><td><button class="btn btn-sm" onclick="showModal('modal-tag-detail')">详情</button></td></tr>
+            </table>
+        </div>
+        <!-- 客户分配 Tab -->
+        <div class="tab-content" id="tab-vlg-customer">
+            <div style="margin-bottom:15px"><button class="btn" onclick="showModal('modal-add-customer-alloc')">新增客户分配</button></div>
+            <table>
+                <tr><th>ID</th><th>VLG名称</th><th>客户ID</th><th>分配类别</th><th>百分比</th><th>时间范围</th><th>操作</th></tr>
+                <tr><td>1</td><td>拣选区A</td><td>CUST-001</td><td>DEDICATED</td><td>60%</td><td>08:00-18:00</td><td><button class="btn btn-sm">编辑</button></td></tr>
+                <tr><td>2</td><td>拣选区A</td><td>CUST-002</td><td>SHARED</td><td>40%</td><td>-</td><td><button class="btn btn-sm">编辑</button></td></tr>
+            </table>
+        </div>
+        <!-- 物料关联 Tab -->
+        <div class="tab-content" id="tab-vlg-item">
+            <div style="margin-bottom:15px"><button class="btn" onclick="showModal('modal-add-item-vlg')">新增物料关联</button></div>
+            <table>
+                <tr><th>ID</th><th>VLG名称</th><th>客户ID</th><th>物料ID</th><th>托盘类型</th><th>操作</th></tr>
+                <tr><td>1</td><td>拣选区A</td><td>CUST-001</td><td>ITEM-001</td><td>PARTIAL</td><td><button class="btn btn-sm">编辑</button><button class="btn btn-sm btn-danger">删除</button></td></tr>
+                <tr><td>2</td><td>存储区B</td><td>CUST-001</td><td>ITEM-002</td><td>FULL</td><td><button class="btn btn-sm">编辑</button><button class="btn btn-sm btn-danger">删除</button></td></tr>
+            </table>
+        </div>
+        <!-- 物料组关联 Tab -->
+        <div class="tab-content" id="tab-vlg-itemgroup">
+            <div style="margin-bottom:15px"><button class="btn" onclick="showModal('modal-add-itemgroup-vlg')">新增物料组关联</button></div>
+            <table>
+                <tr><th>ID</th><th>VLG名称</th><th>客户ID</th><th>物料组ID</th><th>标题ID</th><th>托盘类型</th><th>操作</th></tr>
+                <tr><td>1</td><td>存储区B</td><td>CUST-001</td><td>IG-001</td><td>TITLE-001</td><td>FULL</td><td><button class="btn btn-sm">编辑</button></td></tr>
+            </table>
+        </div>
+        <!-- 货主关联 Tab -->
+        <div class="tab-content" id="tab-vlg-title">
+            <div style="margin-bottom:15px"><button class="btn" onclick="showModal('modal-add-title-vlg')">新增货主关联</button></div>
+            <table>
+                <tr><th>ID</th><th>VLG名称</th><th>客户ID</th><th>货主ID</th><th>托盘类型</th><th>操作</th></tr>
+                <tr><td>1</td><td>拣选区A</td><td>CUST-002</td><td>TITLE-002</td><td>CARTON</td><td><button class="btn btn-sm">编辑</button></td></tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== 拣选灯管理页面 ========== -->
+    <div class="page hidden" id="page-picktolight">
+        <div class="page-header">
+            <h3>拣选灯管理</h3>
+            <div>
+                <button class="btn" onclick="showModal('modal-add-ptl')">新增拣选灯</button>
+                <button class="btn btn-success" onclick="showModal('modal-add-ptl-group')">新增灯组</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="active" onclick="showPtlTab('ptl-list')">拣选灯列表</button>
+            <button onclick="showPtlTab('ptl-group')">灯组管理</button>
+        </div>
+        <!-- 拣选灯列表 Tab -->
+        <div class="tab-content active" id="tab-ptl-list">
+            <table>
+                <tr><th>ID</th><th>灯编号</th><th>灯组</th><th>关联库位</th><th>关联设备</th><th>占用状态</th><th>操作</th></tr>
+                <tr>
+                    <td>1</td><td>PTL-001</td><td>GROUP-A</td><td>LOC-A01-01</td><td>-</td>
+                    <td><span class="tag tag-gray">空闲</span></td>
+                    <td><button class="btn btn-sm" onclick="showModal('modal-ptl-detail')">详情</button></td>
+                </tr>
+                <tr>
+                    <td>2</td><td>PTL-002</td><td>GROUP-A</td><td>LOC-A01-02</td><td>-</td>
+                    <td><span class="tag tag-green">占用中</span></td>
+                    <td><button class="btn btn-sm" onclick="showModal('modal-ptl-detail')">详情</button></td>
+                </tr>
+                <tr>
+                    <td>3</td><td>PTL-003</td><td>GROUP-B</td><td>-</td><td>TOTE-001</td>
+                    <td><span class="tag tag-gray">空闲</span></td>
+                    <td><button class="btn btn-sm" onclick="showModal('modal-ptl-detail')">详情</button></td>
+                </tr>
+            </table>
+        </div>
+        <!-- 灯组管理 Tab -->
+        <div class="tab-content" id="tab-ptl-group">
+            <table>
+                <tr><th>ID</th><th>灯组名称</th><th>IP地址</th><th>端口</th><th>类型</th><th>关联VLG</th><th>操作</th></tr>
+                <tr>
+                    <td>1</td><td>GROUP-A</td><td>192.168.1.100</td><td>8080</td><td>STANDARD</td><td>拣选区A</td>
+                    <td><button class="btn btn-sm" onclick="showModal('modal-ptl-group-detail')">详情</button></td>
+                </tr>
+                <tr>
+                    <td>2</td><td>GROUP-B</td><td>192.168.1.101</td><td>8080</td><td>STANDARD</td><td>存储区B</td>
+                    <td><button class="btn btn-sm" onclick="showModal('modal-ptl-group-detail')">详情</button></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<!-- ========== 模态框区域 ========== -->
+
+<!-- 库位详情模态框 -->
+<div class="modal" id="modal-location-detail">
+    <div class="modal-content">
+        <h4>库位详情</h4>
+        <div class="detail-grid">
+            <div class="detail-item"><label>库位ID</label><span>LOC-A01-01</span></div>
+            <div class="detail-item"><label>名称</label><span>A区01排01层</span></div>
+            <div class="detail-item"><label>别名</label><span>A-01-01</span></div>
+            <div class="detail-item"><label>类型</label><span class="tag tag-blue">STORAGE</span></div>
+            <div class="detail-item"><label>状态</label><span class="tag tag-green">ACTIVE</span></div>
+            <div class="detail-item"><label>空间状态</label><span class="tag tag-gray">EMPTY</span></div>
+            <div class="detail-item"><label>巷道</label><span>A</span></div>
+            <div class="detail-item"><label>排</label><span>01</span></div>
+            <div class="detail-item"><label>区</label><span>ZONE-A</span></div>
+            <div class="detail-item"><label>层</label><span>1</span></div>
+            <div class="detail-item"><label>尺寸(长x宽x高)</label><span>120 x 100 x 150 CM</span></div>
+            <div class="detail-item"><label>容量</label><span>1000</span></div>
+            <div class="detail-item"><label>拣选类型</label><span>PIECE</span></div>
+            <div class="detail-item"><label>温控类型</label><span>NORMAL</span></div>
+            <div class="detail-item"><label>禁止同位置混放</label><span>是</span></div>
+            <div class="detail-item"><label>上架建议权重</label><span>1.0</span></div>
+            <div class="detail-item"><label>拣选权重</label><span>1.0</span></div>
+            <div class="detail-item"><label>最后盘点日期</label><span>2026-01-01</span></div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-location-detail')">关闭</button>
+            <button class="btn">编辑</button>
+            <button class="btn btn-warning">锁定</button>
+            <button class="btn btn-danger">禁用</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增库位模态框 -->
+<div class="modal" id="modal-add-location">
+    <div class="modal-content">
+        <h4>新增库位</h4>
+        <div class="form-row"><label>库位ID</label><input type="text" placeholder="如 LOC-A01-01" /></div>
+        <div class="form-row"><label>库位名称</label><input type="text" placeholder="如 A区01排01层" /></div>
+        <div class="form-row"><label>别名</label><input type="text" placeholder="如 A-01-01" /></div>
+        <div class="form-row"><label>类型</label>
+            <select>
+                <option value="STORAGE">存储位 STORAGE</option>
+                <option value="PICKING">拣选位 PICKING</option>
+                <option value="STAGING">暂存位 STAGING</option>
+                <option value="DOCK">月台 DOCK</option>
+                <option value="RECEIVING">收货位 RECEIVING</option>
+                <option value="SHIPPING">发货位 SHIPPING</option>
+            </select>
+        </div>
+        <div class="form-row"><label>巷道</label><input type="text" placeholder="A" /></div>
+        <div class="form-row"><label>排</label><input type="text" placeholder="01" /></div>
+        <div class="form-row"><label>区</label><input type="text" placeholder="ZONE-A" /></div>
+        <div class="form-row"><label>层</label><input type="number" placeholder="1" /></div>
+        <div class="form-row"><label>长度(CM)</label><input type="number" placeholder="120" /></div>
+        <div class="form-row"><label>宽度(CM)</label><input type="number" placeholder="100" /></div>
+        <div class="form-row"><label>高度(CM)</label><input type="number" placeholder="150" /></div>
+        <div class="form-row"><label>容量</label><input type="number" placeholder="1000" /></div>
+        <div class="form-row"><label>拣选类型</label>
+            <select><option value="PIECE">件 PIECE</option><option value="CASE">箱 CASE</option><option value="PALLET">托盘 PALLET</option></select>
+        </div>
+        <div class="form-row"><label>温控类型</label>
+            <select><option value="NORMAL">常温 NORMAL</option><option value="COLD">冷藏 COLD</option><option value="FROZEN">冷冻 FROZEN</option></select>
+        </div>
+        <div class="form-row"><label>禁止同位置混放</label>
+            <select><option value="true">是</option><option value="false">否</option></select>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-location')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 批量导入库位模态框 -->
+<div class="modal" id="modal-import-location">
+    <div class="modal-content">
+        <h4>批量导入库位</h4>
+        <div class="form-row">
+            <label>下载模板</label>
+            <button class="btn btn-default">下载 Excel 模板</button>
+        </div>
+        <div class="form-row">
+            <label>上传文件</label>
+            <input type="file" accept=".xlsx,.xls" />
+        </div>
+        <div class="form-row">
+            <label>导入说明</label>
+            <div style="font-size:13px;color:#666;line-height:1.6;">
+                - 支持 xlsx/xls 格式<br>
+                - 单次最多导入 1000 条<br>
+                - 必填字段：库位ID、名称、类型<br>
+                - 重复的库位ID将被跳过
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-import-location')">取消</button>
+            <button class="btn btn-success">开始导入</button>
+        </div>
+    </div>
+</div>
+
+<!-- 设备详情模态框 -->
+<div class="modal" id="modal-equipment-detail">
+    <div class="modal-content">
+        <h4>设备详情</h4>
+        <div class="detail-grid">
+            <div class="detail-item"><label>设备ID</label><span>TOTE-001</span></div>
+            <div class="detail-item"><label>名称</label><span>料箱001</span></div>
+            <div class="detail-item"><label>条码</label><span>TOTE001</span></div>
+            <div class="detail-item"><label>类型</label><span>TOTE</span></div>
+            <div class="detail-item"><label>状态</label><span class="tag tag-green">ACTIVE</span></div>
+            <div class="detail-item"><label>空间状态</label><span class="tag tag-gray">EMPTY</span></div>
+            <div class="detail-item"><label>尺寸(长x宽x高)</label><span>60 x 40 x 30 CM</span></div>
+            <div class="detail-item"><label>容量</label><span>72000</span></div>
+            <div class="detail-item"><label>当前填充率</label><span>0%</span></div>
+            <div class="detail-item"><label>当前位置</label><span>LOC-A01-01</span></div>
+            <div class="detail-item"><label>占用者</label><span>-</span></div>
+            <div class="detail-item"><label>标签</label><span class="tag tag-blue">STANDARD</span><span class="tag tag-green">PICKING</span></div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-equipment-detail')">关闭</button>
+            <button class="btn">编辑</button>
+            <button class="btn btn-warning">禁用</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增设备模态框 -->
+<div class="modal" id="modal-add-equipment">
+    <div class="modal-content">
+        <h4>新增设备</h4>
+        <div class="form-row"><label>设备ID</label><input type="text" placeholder="如 TOTE-001" /></div>
+        <div class="form-row"><label>设备名称</label><input type="text" placeholder="如 料箱001" /></div>
+        <div class="form-row"><label>条码</label><input type="text" placeholder="如 TOTE001" /></div>
+        <div class="form-row"><label>类型</label>
+            <select><option value="TOTE">料箱 TOTE</option><option value="PALLET">托盘 PALLET</option><option value="CART">推车 CART</option></select>
+        </div>
+        <div class="form-row"><label>长度(CM)</label><input type="number" placeholder="60" /></div>
+        <div class="form-row"><label>宽度(CM)</label><input type="number" placeholder="40" /></div>
+        <div class="form-row"><label>高度(CM)</label><input type="number" placeholder="30" /></div>
+        <div class="form-row"><label>容量</label><input type="number" placeholder="72000" /></div>
+        <div class="form-row"><label>标签(逗号分隔)</label><input type="text" placeholder="STANDARD,PICKING" /></div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-equipment')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 批量创建料箱模态框 -->
+<div class="modal" id="modal-batch-tote">
+    <div class="modal-content">
+        <h4>批量创建空料箱</h4>
+        <div class="form-row"><label>ID前缀</label><input type="text" placeholder="TOTE-" /></div>
+        <div class="form-row"><label>起始编号</label><input type="number" placeholder="1" /></div>
+        <div class="form-row"><label>创建数量</label><input type="number" placeholder="100" /></div>
+        <div class="form-row"><label>尺寸(长x宽x高 CM)</label><input type="text" placeholder="60x40x30" /></div>
+        <div class="form-row"><label>容量</label><input type="number" placeholder="72000" /></div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-batch-tote')">取消</button>
+            <button class="btn btn-success">批量创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- 填充率记录模态框 -->
+<div class="modal" id="modal-fillrate">
+    <div class="modal-content">
+        <h4>填充率记录 - TOTE-001</h4>
+        <div class="form-row"><label>当前填充率</label><input type="number" placeholder="0-100" /> %</div>
+        <div class="form-row"><label>槽位代码</label><input type="text" placeholder="SLOT-01" /></div>
+        <div class="form-row"><label>是否溢出</label>
+            <select><option value="false">否</option><option value="true">是</option></select>
+        </div>
+        <h5 style="margin-top:20px">历史记录</h5>
+        <table>
+            <tr><th>时间</th><th>填充率</th><th>槽位</th><th>溢出</th></tr>
+            <tr><td>2026-01-07 10:30</td><td>45%</td><td>SLOT-01</td><td>否</td></tr>
+            <tr><td>2026-01-07 09:15</td><td>30%</td><td>SLOT-01</td><td>否</td></tr>
+        </table>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-fillrate')">关闭</button>
+            <button class="btn">记录填充率</button>
+        </div>
+    </div>
+</div>
+
+<!-- VLG 详情模态框 -->
+<div class="modal" id="modal-vlg-detail">
+    <div class="modal-content">
+        <h4>虚拟位置组详情</h4>
+        <div class="detail-grid">
+            <div class="detail-item"><label>ID</label><span>1001</span></div>
+            <div class="detail-item"><label>名称</label><span>拣选区A</span></div>
+            <div class="detail-item"><label>类型</label><span class="tag tag-blue">PICKING_ZONE</span></div>
+            <div class="detail-item"><label>拣选类型</label><span>PIECE</span></div>
+            <div class="detail-item"><label>禁止同位置混放商品</label><span>是</span></div>
+            <div class="detail-item"><label>禁止同位置混放批次</label><span>否</span></div>
+            <div class="detail-item"><label>上架跳过已占用位置</label><span>是</span></div>
+            <div class="detail-item"><label>最大部分托盘数</label><span>5</span></div>
+            <div class="detail-item"><label>启用耗尽位置</label><span>否</span></div>
+            <div class="detail-item"><label>占用状态</label><span class="tag tag-gray">空闲</span></div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-vlg-detail')">关闭</button>
+            <button class="btn">编辑</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增 VLG 模态框 -->
+<div class="modal" id="modal-add-vlg">
+    <div class="modal-content">
+        <h4>新增虚拟位置组</h4>
+        <div class="form-row"><label>名称</label><input type="text" placeholder="如 拣选区A" /></div>
+        <div class="form-row"><label>类型</label>
+            <select>
+                <option value="PICKING_ZONE">拣选区 PICKING_ZONE</option>
+                <option value="STORAGE_ZONE">存储区 STORAGE_ZONE</option>
+                <option value="STAGING_ZONE">暂存区 STAGING_ZONE</option>
+                <option value="RECEIVING_ZONE">收货区 RECEIVING_ZONE</option>
+                <option value="SHIPPING_ZONE">发货区 SHIPPING_ZONE</option>
+            </select>
+        </div>
+        <div class="form-row"><label>拣选类型</label>
+            <select><option value="PIECE">件 PIECE</option><option value="CASE">箱 CASE</option><option value="PALLET">托盘 PALLET</option></select>
+        </div>
+        <div class="form-row"><label>关联标签ID(逗号分隔)</label><input type="text" placeholder="1,2,3" /></div>
+        <div class="form-row"><label>禁止同位置混放商品</label>
+            <select><option value="true">是</option><option value="false">否</option></select>
+        </div>
+        <div class="form-row"><label>禁止同位置混放批次</label>
+            <select><option value="false">否</option><option value="true">是</option></select>
+        </div>
+        <div class="form-row"><label>上架跳过已占用位置</label>
+            <select><option value="true">是</option><option value="false">否</option></select>
+        </div>
+        <div class="form-row"><label>最大部分托盘数</label><input type="number" placeholder="5" /></div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-vlg')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增标签模态框 -->
+<div class="modal" id="modal-add-tag">
+    <div class="modal-content">
+        <h4>新增位置标签</h4>
+        <div class="form-row"><label>标签名称</label><input type="text" placeholder="如 冷链区" /></div>
+        <div class="form-row"><label>描述</label><textarea placeholder="标签描述"></textarea></div>
+        <div class="form-row"><label>关联库位ID(逗号分隔)</label><input type="text" placeholder="LOC-001,LOC-002" /></div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-tag')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 标签详情模态框 -->
+<div class="modal" id="modal-tag-detail">
+    <div class="modal-content">
+        <h4>标签详情</h4>
+        <div class="detail-grid">
+            <div class="detail-item"><label>ID</label><span>1</span></div>
+            <div class="detail-item"><label>名称</label><span>冷链区</span></div>
+            <div class="detail-item"><label>描述</label><span>温控存储区域</span></div>
+            <div class="detail-item"><label>关联库位数</label><span>20</span></div>
+        </div>
+        <h5 style="margin-top:15px">关联库位列表</h5>
+        <div style="max-height:150px;overflow-y:auto;border:1px solid var(--border-color);padding:10px;border-radius:4px;">
+            LOC-A01-01, LOC-A01-02, LOC-A01-03, LOC-A02-01, LOC-A02-02, LOC-A02-03, LOC-A03-01, LOC-A03-02...
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-tag-detail')">关闭</button>
+            <button class="btn">编辑</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增客户分配模态框 -->
+<div class="modal" id="modal-add-customer-alloc">
+    <div class="modal-content">
+        <h4>新增客户分配</h4>
+        <div class="form-row"><label>虚拟位置组</label>
+            <select><option value="1001">拣选区A</option><option value="1002">存储区B</option></select>
+        </div>
+        <div class="form-row"><label>客户ID</label><input type="text" placeholder="CUST-001" /></div>
+        <div class="form-row"><label>分配类别</label>
+            <select><option value="DEDICATED">专用 DEDICATED</option><option value="SHARED">共享 SHARED</option><option value="OVERFLOW">溢出 OVERFLOW</option></select>
+        </div>
+        <div class="form-row"><label>分配百分比</label><input type="number" placeholder="0-100" /> %</div>
+        <div class="form-row"><label>时间范围开始</label><input type="text" placeholder="08:00" /></div>
+        <div class="form-row"><label>时间范围结束</label><input type="text" placeholder="18:00" /></div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-customer-alloc')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增物料关联模态框 -->
+<div class="modal" id="modal-add-item-vlg">
+    <div class="modal-content">
+        <h4>新增物料关联</h4>
+        <div class="form-row"><label>虚拟位置组</label>
+            <select><option value="1001">拣选区A</option><option value="1002">存储区B</option></select>
+        </div>
+        <div class="form-row"><label>客户ID</label><input type="text" placeholder="CUST-001" /></div>
+        <div class="form-row"><label>物料ID</label><input type="text" placeholder="ITEM-001" /></div>
+        <div class="form-row"><label>托盘类型</label>
+            <select><option value="FULL">整托 FULL</option><option value="PARTIAL">部分托 PARTIAL</option><option value="CARTON">箱 CARTON</option></select>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-item-vlg')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增物料组关联模态框 -->
+<div class="modal" id="modal-add-itemgroup-vlg">
+    <div class="modal-content">
+        <h4>新增物料组关联</h4>
+        <div class="form-row"><label>虚拟位置组</label>
+            <select><option value="1001">拣选区A</option><option value="1002">存储区B</option></select>
+        </div>
+        <div class="form-row"><label>客户ID</label><input type="text" placeholder="CUST-001" /></div>
+        <div class="form-row"><label>物料组ID</label><input type="text" placeholder="IG-001" /></div>
+        <div class="form-row"><label>标题ID</label><input type="text" placeholder="TITLE-001" /></div>
+        <div class="form-row"><label>托盘类型</label>
+            <select><option value="FULL">整托 FULL</option><option value="PARTIAL">部分托 PARTIAL</option><option value="CARTON">箱 CARTON</option></select>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-itemgroup-vlg')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增货主关联模态框 -->
+<div class="modal" id="modal-add-title-vlg">
+    <div class="modal-content">
+        <h4>新增货主关联</h4>
+        <div class="form-row"><label>虚拟位置组</label>
+            <select><option value="1001">拣选区A</option><option value="1002">存储区B</option></select>
+        </div>
+        <div class="form-row"><label>客户ID</label><input type="text" placeholder="CUST-001" /></div>
+        <div class="form-row"><label>货主ID</label><input type="text" placeholder="TITLE-001" /></div>
+        <div class="form-row"><label>托盘类型</label>
+            <select><option value="FULL">整托 FULL</option><option value="PARTIAL">部分托 PARTIAL</option><option value="CARTON">箱 CARTON</option></select>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-title-vlg')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 拣选灯详情模态框 -->
+<div class="modal" id="modal-ptl-detail">
+    <div class="modal-content">
+        <h4>拣选灯详情</h4>
+        <div class="detail-grid">
+            <div class="detail-item"><label>ID</label><span>1</span></div>
+            <div class="detail-item"><label>灯编号</label><span>PTL-001</span></div>
+            <div class="detail-item"><label>所属灯组</label><span>GROUP-A</span></div>
+            <div class="detail-item"><label>关联库位</label><span>LOC-A01-01</span></div>
+            <div class="detail-item"><label>关联设备</label><span>-</span></div>
+            <div class="detail-item"><label>占用状态</label><span class="tag tag-gray">空闲</span></div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-ptl-detail')">关闭</button>
+            <button class="btn">编辑</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增拣选灯模态框 -->
+<div class="modal" id="modal-add-ptl">
+    <div class="modal-content">
+        <h4>新增拣选灯</h4>
+        <div class="form-row"><label>灯编号</label><input type="text" placeholder="PTL-001" /></div>
+        <div class="form-row"><label>所属灯组</label>
+            <select><option value="1">GROUP-A</option><option value="2">GROUP-B</option></select>
+        </div>
+        <div class="form-row"><label>关联库位ID</label><input type="text" placeholder="LOC-A01-01" /></div>
+        <div class="form-row"><label>关联设备ID(可选)</label><input type="text" placeholder="TOTE-001" /></div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-ptl')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 灯组详情模态框 -->
+<div class="modal" id="modal-ptl-group-detail">
+    <div class="modal-content">
+        <h4>灯组详情</h4>
+        <div class="detail-grid">
+            <div class="detail-item"><label>ID</label><span>1</span></div>
+            <div class="detail-item"><label>灯组名称</label><span>GROUP-A</span></div>
+            <div class="detail-item"><label>IP地址</label><span>192.168.1.100</span></div>
+            <div class="detail-item"><label>端口</label><span>8080</span></div>
+            <div class="detail-item"><label>类型</label><span>STANDARD</span></div>
+            <div class="detail-item"><label>关联VLG</label><span>拣选区A</span></div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-ptl-group-detail')">关闭</button>
+            <button class="btn">编辑</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增灯组模态框 -->
+<div class="modal" id="modal-add-ptl-group">
+    <div class="modal-content">
+        <h4>新增拣选灯组</h4>
+        <div class="form-row"><label>灯组名称</label><input type="text" placeholder="GROUP-A" /></div>
+        <div class="form-row"><label>IP地址</label><input type="text" placeholder="192.168.1.100" /></div>
+        <div class="form-row"><label>端口</label><input type="number" placeholder="8080" /></div>
+        <div class="form-row"><label>类型</label><input type="text" placeholder="STANDARD" /></div>
+        <div class="form-row"><label>关联VLG</label>
+            <select><option value="1001">拣选区A</option><option value="1002">存储区B</option></select>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-default" onclick="hideModal('modal-add-ptl-group')">取消</button>
+            <button class="btn">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(page => page.classList.add('hidden'));
+        document.getElementById('page-' + pageId).classList.remove('hidden');
+        document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('nav-' + pageId).classList.add('active');
+    }
+    function showModal(modalId) {
+        document.getElementById(modalId).classList.add('show');
+    }
+    function hideModal(modalId) {
+        document.getElementById(modalId).classList.remove('show');
+    }
+    function showVlgTab(tabId) {
+        document.querySelectorAll('#page-vlg .tab-content').forEach(tab => tab.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        document.querySelectorAll('#page-vlg .tabs button').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+    function showPtlTab(tabId) {
+        document.querySelectorAll('#page-picktolight .tab-content').forEach(tab => tab.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        document.querySelectorAll('#page-picktolight .tabs button').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+    // 点击模态框背景关闭
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('show');
+            }
+        });
+    });
+</script>
+</body>
+</html>
+

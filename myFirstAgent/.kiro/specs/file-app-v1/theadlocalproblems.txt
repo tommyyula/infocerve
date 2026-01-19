@@ -1,0 +1,92 @@
+ThreadLocal 分析报告
+
+工程中使用的 ThreadLocal 清单：
+
+TokenHolder - 用户认证信息（userId, username, tenantId, isSystemAdmin 等）- 需要跨线程传递
+IsolationHolder - 租户隔离（tenantId, facilityId, applicationCode）- 需要跨线程传递
+RequestContext - 请求上下文（traceId, userName, requestPath 等）- 需要跨线程传递
+TimeZoneContext - 时区上下文 - 需要跨线程传递
+TenantContext - 租户ID（与 IsolationHolder 重复？）- 待确认
+TenantIgnoreContext - 是否忽略租户隔离 - 可能需要传递
+NullFieldContext - 更新时的 null 字段标记 - 不需要传递（请求级别）
+NullifyFieldRequestAdvice.cachedRequestBody - 缓存请求体 - 不需要传递（请求级别）
+LockUtil.DOUBLE_SUBMIT_LOCK_KEYS - 防重复提交锁的 key 集合 - 可能需要传递
+发现的问题：
+
+问题1（严重）：MdcTaskDecorator 缺少 TokenHolder 传递
+
+位置：wms-backend-read-only/common/src/main/java/com/item/infrastructure/async/MdcTaskDecorator.java
+
+当前只传递了：IsolationHolder、TimeZoneContext、MDC、RequestContext.traceId（部分）
+
+缺失：TokenHolder（用户认证信息）、RequestContext 的其他字段（userName, requestPath, requestMethod, screenId, dataChangeSource）
+
+影响：异步任务中无法获取当前用户信息，审计日志中 createdBy/updatedBy 可能为空，TokenHolder.isSystemAdmin() 等方法返回错误结果
+
+
+
+问题2：TenantContext 与 IsolationHolder 功能重复
+
+两个类都存储 tenantId，可能导致数据不一致、维护困难
+
+
+问题3：TenantIgnoreContext 未在 TaskDecorator 中传递
+
+如果主线程设置了 TenantIgnoreContext.setIgnore(true)，异步任务中 isIgnore() 会返回 false
+
+影响：SystemAdmin 在异步任务中查询数据时，租户隔离可能意外生效
+
+
+
+问题4：LockUtil.DOUBLE_SUBMIT_LOCK_KEYS 未在 TaskDecorator 中传递
+
+如果主线程获取了防重复提交锁，异步任务完成后调用 clearDoubleSubmitLocks() 无法清理主线程的锁
+
+
+
+问题5：gateway-app 的 RouteConfigRefreshTaskExecutorConfig 缺少 TaskDecorator
+
+线程池没有设置 TaskDecorator，路由刷新任务中无法获取上下文信息
+
+已正确实现的部分：
+
+AfterCompletionExecutorThreadPoolConfiguration.createDefaultTaskDecorator() 已完整传递所有上下文
+
+LocalAuthInterceptor.afterCompletion() 已正确清理所有上下文
+
+需要与你确认的问题：
+
+TenantContext vs IsolationHolder：这两个类是否有不同的使用场景？还是可以统一废弃 TenantContext？统一，然后废弃TenantContext
+
+TenantIgnoreContext：异步任务中是否需要保持租户忽略状态？是
+
+MdcTaskDecorator 修复范围：只修复 wms-lite-backend-2？还是同时修复 wms-backend-read-only？只修复 wms-lite-backend-2，com.t5.common.persistence.AfterCompletionExecutorThreadPoolConfiguration.createDefaultTaskDecorator 也替换成统一的decorator
+
+LockUtil.DOUBLE_SUBMIT_LOCK_KEYS：当前的设计是否有实际问题？是否需要重新设计？暂无问题，但是要注意传递
+
+
+RequestContext 和 TokenHolder 也有重复的功能，废弃 RequestContext，统一用 TokenHolder
+
+
+
+
+
+
+需要确认的问题：
+
+RequestContext 中的 traceId、requestPath、requestMethod、screenId、dataChangeSource 这些字段要迁移到 TokenHolder 吗？还是保留 RequestContext 只用于这些请求级别的信息？
+因为这两个类的职责其实不太一样：
+
+TokenHolder：用户身份信息（谁在操作）
+RequestContext：请求信息（怎么操作的，从哪来的）
+如果全部合并到 TokenHolder，TokenHolder 会变得很臃肿，而且语义上也不太对（traceId、requestPath 不是用户信息）。
+
+建议：
+
+保留 RequestContext 用于请求级别信息（traceId、requestPath、requestMethod、screenId、dataChangeSource）
+TokenHolder 用于用户身份信息
+只是把 RequestContext.userName 废弃，统一用 TokenHolder.getCurrentUsername()
+你觉得呢？
+
+
+保留 RequestContext 只用于这些请求级别的信息，把 RequestContext.userName 废弃，统一用 TokenHolder.getCurrentUsername()

@@ -1,0 +1,169 @@
+📋 file-app 需求文档分析报告
+1. 需求描述
+   将 file-backend 的完整功能迁移到 wms-lite-backend-2/file-app 模块，包括：
+
+基础文件上传/下载/删除/查询
+多存储平台支持（OSS/S3/LOCAL）
+Bucket 管理、访问配置（AccessConfig）
+缩略图生成、水印添加、PDF 转图片
+多租户支持
+2. 系统架构理解
+   2.1 源系统（file-backend）
+   时间类型：Instant
+   租户注解：@TenantTable（自定义）
+   字段命名：下划线风格（createdWhen, updatedWhen, voidWhen）
+   包路径：com.item.file
+   2.2 目标系统（wms-lite-backend-2）
+   时间类型：LocalDateTime
+   租户注解：@TenantIsolation（来自 com.t5.common.annotation）
+   字段命名：驼峰风格（createdTime, updatedTime）
+   包路径：com.t5.file
+   基础类：
+   BaseEntity：包含 createdTime, createdBy, updatedTime, updatedBy
+   BaseCompanyEntity：继承 BaseEntity，额外包含 tenantId, isolationId，已标注 @TenantIsolation
+3. 核心业务对象关系
+   ┌─────────────────────────────────────────────────────────────────┐
+   │                        配置层（无租户隔离）                        │
+   ├─────────────────────────────────────────────────────────────────┤
+   │  AccessConfig ──1:N──> ConfigMetadata                           │
+   │       │                                                         │
+   │       └──────────────> Route <──────────────┐                   │
+   │                          │                   │                   │
+   └──────────────────────────┼───────────────────┼───────────────────┘
+   │                   │
+   ┌──────────────────────────┼───────────────────┼───────────────────┐
+   │                        业务层（有租户隔离）                        │
+   ├──────────────────────────┼───────────────────┼───────────────────┤
+   │                          ▼                   │                   │
+   │  Bucket ◄────────────────┘                   │                   │
+   │    │                                         │                   │
+   │    └──1:N──> FileDetail ──1:1──> ThumbnailImage                 │
+   │                  │                                               │
+   │                  └──1:N──> SplitFileJob ──1:N──> SplitFileDetail │
+   └─────────────────────────────────────────────────────────────────┘
+4. 需求文档分析 - 需要确认的问题
+   ⚠️ 问题 1：design.md 中 BaseCompanyEntity 的继承关系
+   问题描述： design.md 中定义实体类继承 BaseCompanyEntity，但 wms-lite-backend-2 中存在两个 BaseCompanyEntity：
+
+com.t5.infrastructure.persistence.common.BaseCompanyEntity（common 模块）
+com.t5.mdm.infrastructure.persistence.itemmaster.base.BaseCompanyEntity（mdm-app 模块）
+需要确认： file-app 的实体类应该继承哪个 BaseCompanyEntity？使用 common 模块的版本。
+
+⚠️ 问题 2：FileDetail 实体中的 fileType 字段类型
+问题描述：
+
+file-backend 中 FileDetail.fileType 使用 MIME 枚举类型
+design.md 中定义为 String 类型
+需要确认： 是否保留 MIME 枚举类型，还是简化为 String？保留 MIME 枚举类型
+
+⚠️ 问题 3：默认 Bucket 的确定方式
+问题描述： 需求 1.3 提到"未指定 bucket 时使用该租户的默认 bucket"，但未说明如何确定默认 bucket。
+
+需要确认：选C
+
+方案 A：Bucket 表增加 isDefault 字段
+方案 B：按名称约定（如 "default"）
+方案 C：按创建时间取第一个
+⚠️ 问题 4：文件删除策略
+问题描述： 需求文档未明确说明文件删除是软删除还是硬删除。design.md 中实体类包含 voidBy 和 voidTime 字段，暗示软删除。
+
+需要确认：
+
+删除文件时是软删除（设置 voidBy/voidTime）还是硬删除？
+软删除后物理文件是否保留？软删除
+⚠️ 问题 5：缩略图生成时机
+问题描述： 需求 5 提到两种缩略图生成方式：
+
+上传时自动生成（需求 5.1）
+请求时按需生成（需求 5.2）
+需要确认：
+
+是否需要上传参数 createThumbnail 来控制是否自动生成？需要，默认需要，入参可以改成不需要
+还是所有图片上传都自动生成缩略图？
+⚠️ 问题 6：PDF 拆分任务的异步执行机制
+问题描述： design.md 提到异步执行 PDF 拆分，但未说明具体实现方式。file-backend 使用 Job Handler（可能是 XXL-Job）。
+
+需要确认：
+
+使用 Spring @Async 简单异步？简单异步
+还是集成 XXL-Job 等任务调度框架？
+还是使用消息队列（Kafka）？
+⚠️ 问题 7：wms-lite-backend-2 是否已有 file-app 模块
+问题描述： 从目录结构看，wms-lite-backend-2 已存在 file-app 目录。
+
+需要确认：
+
+是完全替换现有 file-app？替换吧
+还是在现有基础上扩展？
+⚠️ 问题 8：错误码范围
+问题描述： design.md 定义错误码范围为 5001-5099，但未确认是否与其他模块冲突。
+
+需要确认： 5001-5099 错误码范围是否已被其他模块占用？你评估一下，这个后面再改也好改
+
+
+
+
+
+需要讨论的 TODO
+1. 获取当前登录用户（4处）
+位置：FileController、PdfController 中的 operator 参数
+
+问题：删除文件、重试任务等操作需要记录操作人，目前硬编码为 "system"
+
+方案选择：B
+
+方案A：使用 SecurityContextHolder 从 Spring Security 上下文获取
+方案B：使用项目已有的用户上下文工具类（如 UserContext、RequestContext 等）
+方案C：从请求头获取（如 X-User-Id）
+请问：项目中获取当前登录用户的方式是什么？有现成的工具类吗？
+
+2. 从 URL 下载文件并创建拆分任务（1处）
+位置：PdfController.splitByUrl()
+
+问题：需要实现从外部 URL 下载 PDF 文件，然后上传到存储系统并创建拆分任务
+
+方案选择：
+
+方案A：实现完整功能（使用 HttpClient 下载 → 上传 → 创建任务）
+方案B：暂时移除此接口（如果不需要此功能）
+方案C：保留接口但抛出 UnsupportedOperationException（当前状态）
+请问：这个功能是否需要？如果需要，是否有文件大小限制或超时要求？A；需要，限制同上传接口
+
+3. 异步生成缩略图（1处）
+位置：FileApplicationService.generateThumbnailAsync()
+
+问题：目前缩略图生成是空实现，只打印日志
+
+方案选择：
+
+方案A：使用 @Async 异步生成缩略图
+方案B：同步生成（在上传时直接生成）
+方案C：使用消息队列异步处理
+请问：缩略图生成是否需要异步？如果需要，使用 @Async 还是消息队列？A
+
+
+
+
+
+
+
+
+xms-core 模块没有依赖 common 模块，所以无法使用 IsolationHolder 和 TokenHolder。
+
+这是一个模块依赖问题。有两个解决方案：
+
+方案 A：在 xms-core 中添加对 common 的依赖
+
+修改 xms-core/build.gradle，添加 api project(':common')
+这样 xms-core 就可以使用 common 中的类
+方案 B：保持原有设计，不在 xms-core 中使用 common 的类
+
+xms-core 是基础框架模块，不应该依赖业务模块
+恢复 TenantContext（在 xms-core 中）
+在 common 模块中让 IsolationHolder 调用 TenantContext
+SessionVariableDBInterceptor 中的 userName 需要另外处理
+方案 C：将 IsolationHolder 和 TokenHolder 移到 xms-core
+
+这些是基础设施类，放在 xms-core 更合适
+但这会是较大的改动
+你倾向哪个方案？我建议方案 B，保持模块依赖的正确方向（common 依赖 xms-core，而不是反过来）。

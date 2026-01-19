@@ -1,0 +1,49 @@
+@startuml 库存导入流程
+!theme plain
+title 库存导入流程
+
+|管理员(PC)|
+start
+:上传CSV/Excel文件;
+
+|系统|
+:解析文件内容;
+:显示数据预览;
+
+|管理员(PC)|
+:配置字段映射;
+
+|系统|
+:验证必填字段;
+
+if (必填字段完整?) then (是)
+  :验证数据完整性;
+  
+  fork
+    :验证客户ID存在;
+  fork again
+    :验证LP ID存在;
+  fork again
+    :验证库位ID存在;
+  fork again
+    :验证商品ID存在;
+  end fork
+  
+  if (全部验证通过?) then (是)
+    :创建调整单\n(type=ADD_INVENTORY);
+    :自动审批调整单;
+    :创建库存记录;
+    :记录库存日志;
+    :返回导入成功;
+  else (否)
+    :返回错误明细;
+  endif
+else (否)
+  :返回字段缺失错误;
+endif
+
+|管理员(PC)|
+:查看导入结果;
+stop
+
+@enduml

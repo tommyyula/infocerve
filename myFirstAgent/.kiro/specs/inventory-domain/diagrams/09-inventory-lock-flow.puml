@@ -1,0 +1,44 @@
+@startuml 库存锁定流程
+!theme plain
+title 库存锁定流程
+
+|订单系统|
+start
+:创建订单;
+:请求锁定库存;
+
+|库存锁定服务|
+:接收锁定请求;
+:查询可用库存\n(status=OPEN, qty>0);
+
+|库存核心服务|
+:返回可用库存列表;
+
+|库存锁定服务|
+:计算已锁定数量\n(status=ACTIVE);
+:计算可锁定数量\n= 可用库存 - 已锁定;
+
+if (可锁定数量 >= 需求数量?) then (是)
+  :创建锁定记录\n(status=ACTIVE);
+  :返回锁定成功;
+else (否)
+  if (可锁定数量 > 0?) then (是)
+    :创建部分锁定记录\n(status=ACTIVE);
+    :返回部分锁定;
+  else (否)
+    :返回锁定失败;
+  endif
+endif
+
+|订单系统|
+:处理锁定结果;
+
+if (锁定成功?) then (是)
+  :继续订单流程;
+else (否)
+  :提示库存不足;
+endif
+
+stop
+
+@enduml

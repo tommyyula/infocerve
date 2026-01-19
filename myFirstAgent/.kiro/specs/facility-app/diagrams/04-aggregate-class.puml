@@ -1,0 +1,259 @@
+@startuml
+!theme cerulean
+title Facility 模块 - 聚合类图
+
+' ========== Equipment 聚合 ==========
+package "Equipment Aggregate" {
+  class Equipment <<AggregateRoot>> {
+    - id: String
+    - tenantId: String
+    - isolationId: String
+    - name: String
+    - type: EquipmentType
+    - status: EquipmentStatus
+    - spaceStatus: EquipmentSpaceStatus
+    - barcode: String
+    - barcodeNum: Long
+    - length: BigDecimal
+    - width: BigDecimal
+    - height: BigDecimal
+    - capacity: BigDecimal
+    - currentFillRate: BigDecimal
+    - occupiedBy: String
+    - locationId: String
+    - locationType: String
+    - tags: List<String>
+    - rfids: List<String>
+    --
+    + create(cmd): Equipment
+    + update(cmd): void
+    + occupy(taskId): void
+    + release(): void
+    + forceRelease(): void
+    + recordFillRate(rate): void
+    + changeLocation(locationId): void
+    + activate(): void
+    + deactivate(): void
+  }
+  
+  class EquipmentFillRateRecord <<Entity>> {
+    - id: Long
+    - equipmentId: String
+    - barcode: String
+    - slotCode: String
+    - fillRate: BigDecimal
+    - overFlow: Boolean
+    --
+    + create(cmd): EquipmentFillRateRecord
+  }
+  
+  class EquipmentInspection <<Entity>> {
+    - id: Long
+    - targetId: String
+    - photoIds: List<String>
+    - comment: String
+    - inspectionCondition: String
+    - photoTime: LocalDateTime
+    - direction: String
+    - equipmentNo: String
+    - equipmentType: String
+    --
+    + create(cmd): EquipmentInspection
+  }
+  
+  enum EquipmentType {
+    TOTE
+    PALLET
+    CART
+    SHELF
+  }
+  
+  enum EquipmentStatus {
+    ACTIVE
+    INACTIVE
+    MAINTENANCE
+  }
+  
+  enum EquipmentSpaceStatus {
+    EMPTY
+    PARTIAL
+    FULL
+  }
+  
+  Equipment "1" *-- "*" EquipmentFillRateRecord : records
+  Equipment "1" *-- "*" EquipmentInspection : inspections
+  Equipment --> EquipmentType
+  Equipment --> EquipmentStatus
+  Equipment --> EquipmentSpaceStatus
+}
+
+' ========== VirtualLocationGroup 聚合 ==========
+package "VirtualLocationGroup Aggregate" {
+  class VirtualLocationGroup <<AggregateRoot>> {
+    - id: Long
+    - tenantId: String
+    - isolationId: String
+    - name: String
+    - type: VirtualLocationGroupType
+    - tagIds: List<Long>
+    - supportPickType: PickType
+    - disallowToMixItemOnSameLocation: Boolean
+    - disallowToMixLotNoOnSameLocation: Boolean
+    - skipOccupiedLocationOnPutAway: Boolean
+    - occupiedBy: List<String>
+    - maximumAllowedPartialPallet: Integer
+    - enableDepletedLocation: Boolean
+    --
+    + create(cmd): VirtualLocationGroup
+    + update(cmd): void
+    + occupy(planId): void
+    + release(planId): void
+    + addTag(tagId): void
+    + removeTag(tagId): void
+  }
+  
+  class VirtualLocationTag <<Entity>> {
+    - id: Long
+    - name: String
+    - desc: String
+    - locationIds: List<String>
+    --
+    + create(cmd): VirtualLocationTag
+    + update(cmd): void
+    + addLocation(locationId): void
+    + removeLocation(locationId): void
+  }
+  
+  class CustomerVlgAllocation <<Entity>> {
+    - id: Long
+    - vlgId: Long
+    - customerId: String
+    - category: CustomerVlgAllocationCategory
+    - percentage: Integer
+    - timeRangeFrom: String
+    - timeRangeTo: String
+    --
+    + create(cmd): CustomerVlgAllocation
+    + update(cmd): void
+    + validatePercentage(): void
+  }
+  
+  class ItemVlg <<Entity>> {
+    - id: Long
+    - vlgId: Long
+    - customerId: String
+    - itemId: String
+    - palletType: PalletType
+    --
+    + create(cmd): ItemVlg
+    + update(cmd): void
+  }
+  
+  class ItemGroupVlg <<Entity>> {
+    - id: Long
+    - vlgId: Long
+    - customerId: String
+    - titleId: String
+    - itemGroupId: String
+    - palletType: PalletType
+    --
+    + create(cmd): ItemGroupVlg
+    + update(cmd): void
+  }
+  
+  class TitleVlg <<Entity>> {
+    - id: Long
+    - vlgId: Long
+    - customerId: String
+    - titleId: String
+    - palletType: PalletType
+    --
+    + create(cmd): TitleVlg
+    + update(cmd): void
+  }
+  
+  enum VirtualLocationGroupType {
+    PICKING_ZONE
+    STORAGE_ZONE
+    STAGING_ZONE
+    RECEIVING_ZONE
+    SHIPPING_ZONE
+  }
+  
+  enum PickType {
+    PIECE
+    CASE
+    PALLET
+  }
+  
+  enum PalletType {
+    FULL
+    PARTIAL
+    CARTON
+  }
+  
+  enum CustomerVlgAllocationCategory {
+    DEDICATED
+    SHARED
+    OVERFLOW
+  }
+  
+  VirtualLocationGroup "1" o-- "*" VirtualLocationTag : tags
+  VirtualLocationGroup "1" *-- "*" CustomerVlgAllocation : allocations
+  VirtualLocationGroup "1" *-- "*" ItemVlg : itemVlgs
+  VirtualLocationGroup "1" *-- "*" ItemGroupVlg : itemGroupVlgs
+  VirtualLocationGroup "1" *-- "*" TitleVlg : titleVlgs
+  VirtualLocationGroup --> VirtualLocationGroupType
+  VirtualLocationGroup --> PickType
+  CustomerVlgAllocation --> CustomerVlgAllocationCategory
+  ItemVlg --> PalletType
+  ItemGroupVlg --> PalletType
+  TitleVlg --> PalletType
+}
+
+' ========== PickToLight 聚合 ==========
+package "PickToLight Aggregate" {
+  class PickToLight <<AggregateRoot>> {
+    - id: Long
+    - lightId: String
+    - groupId: String
+    - locationId: String
+    - equipmentId: String
+    - occupiedBy: String
+    - facilityId: String
+    - tenantId: String
+    --
+    + create(cmd): PickToLight
+    + update(cmd): void
+    + occupy(workerId): void
+    + release(): void
+    + bindLocation(locationId): void
+    + bindEquipment(equipmentId): void
+  }
+  
+  class PickToLightGroup <<Entity>> {
+    - id: Long
+    - name: String
+    - ip: String
+    - port: Integer
+    - type: String
+    - vlgId: Long
+    - deviceType: String
+    - facilityId: String
+    - tenantId: String
+    --
+    + create(cmd): PickToLightGroup
+    + update(cmd): void
+    + bindVlg(vlgId): void
+  }
+  
+  PickToLight "*" --> "1" PickToLightGroup : belongsTo
+}
+
+' ========== 聚合间关系 ==========
+Equipment ..> VirtualLocationGroup : references
+PickToLight ..> Equipment : references
+PickToLightGroup ..> VirtualLocationGroup : references
+
+@enduml
+

@@ -1,0 +1,186 @@
+@startuml
+!theme cerulean
+title Facility 模块 - 状态图
+
+' ========== 设备状态 ==========
+state "设备状态 (EquipmentStatus)" as EquipmentState {
+  [*] --> ACTIVE : 创建设备
+  
+  ACTIVE : 设备可用
+  ACTIVE : 可被分配任务
+  
+  INACTIVE : 设备禁用
+  INACTIVE : 不可分配任务
+  
+  MAINTENANCE : 维护中
+  MAINTENANCE : 需要检修
+  
+  ACTIVE --> INACTIVE : deactivate()
+  INACTIVE --> ACTIVE : activate()
+  ACTIVE --> MAINTENANCE : 检测到异常
+  MAINTENANCE --> ACTIVE : 维护完成
+  INACTIVE --> [*] : delete()
+}
+
+' ========== 设备空间状态 ==========
+newpage 设备空间状态
+
+state "设备空间状态 (EquipmentSpaceStatus)" as SpaceState {
+  [*] --> EMPTY : 创建设备
+  
+  EMPTY : 空闲
+  EMPTY : fillRate = 0
+  
+  PARTIAL : 部分占用
+  PARTIAL : 0 < fillRate < 100
+  
+  FULL : 已满
+  FULL : fillRate = 100
+  
+  EMPTY --> PARTIAL : 放入货物
+  PARTIAL --> FULL : 填满
+  FULL --> PARTIAL : 取出部分货物
+  PARTIAL --> EMPTY : 取出全部货物
+}
+
+' ========== 设备占用状态 ==========
+newpage 设备占用状态
+
+state "设备占用状态" as OccupyState {
+  [*] --> 空闲
+  
+  空闲 : occupiedBy = null
+  空闲 : 可被任务占用
+  
+  已占用 : occupiedBy = taskId
+  已占用 : 正在执行任务
+  
+  已预留 : reservedBy = planId
+  已预留 : 已被计划预留
+  
+  空闲 --> 已占用 : occupy(taskId)
+  已占用 --> 空闲 : release()
+  已占用 --> 空闲 : forceRelease()
+  空闲 --> 已预留 : reserve(planId)
+  已预留 --> 已占用 : confirmReservation()
+  已预留 --> 空闲 : cancelReservation()
+}
+
+' ========== VLG 占用状态 ==========
+newpage VLG 占用状态
+
+state "VLG 占用状态" as VLGOccupyState {
+  [*] --> 空闲
+  
+  空闲 : occupiedBy = []
+  空闲 : 可被订单计划占用
+  
+  部分占用 : occupiedBy.size > 0
+  部分占用 : 有订单计划正在使用
+  
+  空闲 --> 部分占用 : occupy(planId)
+  部分占用 --> 部分占用 : occupy(anotherPlanId)
+  部分占用 --> 空闲 : release(lastPlanId)
+  部分占用 --> 部分占用 : release(planId)
+  
+  note right of 部分占用
+    VLG 支持多个订单计划同时占用
+    occupiedBy 是一个列表
+  end note
+}
+
+' ========== 拣选灯占用状态 ==========
+newpage 拣选灯占用状态
+
+state "拣选灯占用状态" as PTLOccupyState {
+  [*] --> 空闲
+  
+  空闲 : occupiedBy = null
+  空闲 : 灯处于熄灭状态
+  
+  已占用 : occupiedBy = workerId
+  已占用 : 灯处于点亮状态
+  
+  空闲 --> 已占用 : occupy(workerId)\n点亮拣选灯
+  已占用 --> 空闲 : release()\n熄灭拣选灯
+  
+  note right of 已占用
+    拣选灯被占用时
+    会发送指令到灯组控制器
+    点亮对应的拣选灯
+  end note
+}
+
+' ========== 库位状态 ==========
+newpage 库位状态
+
+state "库位状态 (LocationStatus)" as LocationState {
+  [*] --> ACTIVE : 创建库位
+  
+  ACTIVE : 库位可用
+  ACTIVE : 可存放货物
+  
+  INACTIVE : 库位禁用
+  INACTIVE : 不可存放货物
+  
+  LOCKED : 库位锁定
+  LOCKED : 盘点或维护中
+  
+  ACTIVE --> INACTIVE : deactivate()
+  INACTIVE --> ACTIVE : activate()
+  ACTIVE --> LOCKED : lock()
+  LOCKED --> ACTIVE : unlock()
+  INACTIVE --> [*] : delete()
+}
+
+' ========== 库位空间状态 ==========
+newpage 库位空间状态
+
+state "库位空间状态 (SpaceStatus)" as LocationSpaceState {
+  [*] --> EMPTY : 创建库位
+  
+  EMPTY : 空闲
+  EMPTY : 无货物
+  
+  PARTIAL : 部分占用
+  PARTIAL : 有货物但未满
+  
+  FULL : 已满
+  FULL : 达到容量上限
+  
+  EMPTY --> PARTIAL : 上架货物
+  PARTIAL --> FULL : 填满
+  FULL --> PARTIAL : 下架部分货物
+  PARTIAL --> EMPTY : 下架全部货物
+  
+  note right of PARTIAL
+    库位空间状态影响上架策略
+    skipOccupiedLocationOnPutAway
+    控制是否跳过已占用库位
+  end note
+}
+
+' ========== 库位耗尽状态 ==========
+newpage 库位耗尽状态
+
+state "库位耗尽状态" as DepletedState {
+  [*] --> 正常
+  
+  正常 : depletedFlag = false
+  正常 : 库位正常使用
+  
+  已耗尽 : depletedFlag = true
+  已耗尽 : 库位货物已耗尽
+  
+  正常 --> 已耗尽 : 货物拣选完毕\n且 enableDepleted = true
+  已耗尽 --> 正常 : 补货完成
+  
+  note right of 已耗尽
+    耗尽状态用于触发补货流程
+    只有 enableDepletedLocation = true
+    的 VLG 才会启用此功能
+  end note
+}
+
+@enduml
+

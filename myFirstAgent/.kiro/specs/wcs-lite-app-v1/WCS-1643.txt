@@ -1,0 +1,275 @@
+wcs-lite-app 基本设计思路
+做一个通用 WCS 平台”的思路来设计一整套架构，重点放在：*如何串联各种设备 / 各家 RCS，用可配置的 workflow 去编排业务 Job*。
+
+下面我分层讲：整体架构 → 核心概念 → Workflow 设计 → 设备 / RCS 对接 → 举一个完整业务流程例子 → 落地技术建议。
+
+—
+
+一、整体定位 & 架构总览
+*角色关系：*
+
+*上游：* WMS / ERP / OMS / MES
+*中间：* 你要做的 WCS（仓库控制系统）
+*下游：* 各家 RCS（AMR、AGV 等机器人控制系统）、ASRS 立库、输送线、分拣机、提升机、拣选墙、包装机、称重机、贴标机、PLC 设备等
+*核心目标：*
+
+1. *统一 Job 模型*：上游只和 WCS 打交道，不关心具体设备和厂商。
+2. *可配置 Workflow*：一个 Job 来了，通过 Workflow 把 “立库 → 搬运机器人 → 拣选墙 → 包装 → 出库” 这些环节串起来。
+3. *多厂商 RCS / 设备统一接入*：通过适配层，把不同厂商的接口、协议统一成一个抽象能力集。
+4. *可监控、可干预、可追溯*：实时监控每个 Job、每个设备、每个 Workflow Node 的状态。
+
+*高层架构（逻辑）可以分为五层：*
+
+1. *接入层（Northbound API Layer）*
+
+对上游：REST / gRPC / 消息队列，统一的 Job 接口、状态回调接口。
+2. *业务编排与调度层（Orchestration & Workflow Layer）*
+Job & Task 管理
+Workflow 引擎（类似轻量 BPM）
+规则引擎（分配规则、路由规则）
+3. *资源 & 拓扑管理层（Resource & Topology Layer）*
+仓库拓扑：区域、库位、工作站、通道、缓冲区
+设备资源：RCS 集群、输送线段、拣选墙格口、包装工位等
+4. *设备接入与适配层（Device & RCS Integration Layer）*
+RCS 适配器：Vendor A/B/C
+PLC / 现场设备驱动：OPC UA / Modbus / TCP Socket / Vendor SDK
+设备抽象：统一能力模型（Move、Pick、Put、Scan、Weigh、Print 等）
+5. *基础设施层（Infrastructure Layer）*
+消息总线（Kafka/RabbitMQ/MQTT）
+数据库（事务库 + 时序监控库）
+日志 / 监控 / 报警系统
+—
+
+二、核心业务概念与数据模型（抽象层）
+1. Job（业务作业）
+来自 WMS 的业务请求，如：
+
+出库 Job（门店订单、线上订单）
+补货 Job（立库 → 拣选墙拣货区 + 缓存区）
+移库 / 盘点 Job
+空容器回收 Job
+关键字段示例：
+
+`jobId`
+`jobType`：OUTBOUND / REPLENISHMENT / TRANSFER …
+`priority` / `slaTime`
+`fromLocation` / `toLocation`（逻辑位置：库区 / 工作站 / 门店代码）
+`payload`：明细（SKU, QTY），业务附加信息（门店、波次、客户类型）
+2. Task / Sub-Task（系统内部任务）
+一个 Job 会被分解成多个 Task，用于分配给不同设备 / 区域：
+
+例：*门店出库 Job* → Task 列表：
+
+1. 立库出库 Task
+2. AMR 搬运 Task
+3. 拣选墙拣选 Task
+4. 包装 Task
+5. 输送 / 出库 Task
+
+字段示例：
+
+`taskId`, `parentJobId`
+`taskType`（ASRS_PICK, AMR_MOVE, PICK_WALL_PICK, PACK, SORTING…）
+`assignedResource`（RCS 集群 / 具体设备 / 工作站）
+`status`（PENDING / DISPATCHED / IN_PROGRESS / COMPLETED / FAILED / CANCELED）
+`context`（站点号、容器号、托盘号、AMR 类型、优先级等）
+3. WorkflowDefinition & WorkflowInstance
+*WorkflowDefinition*：一个业务类型对应一个流程模板
+例如：`REPLENISH_TO_PICKING_WALL_V1`
+描述节点（Node）及连线（Transition）
+*WorkflowInstance*：针对某个 Job 实例化出来的流程
+跟踪每个 Node 当前状态，执行进度
+4. Node & NodeType
+建议把每个 Workflow 节点抽象成不同类型：
+
+*RCS Mission Node*：向某个 RCS 下发搬运任务，如 “从 Buffer A 搬到 拣选墙站点 01”
+*ASRS Node*：立库任务（出库 / 入库）
+*Device IO Node*：和 PLC / 输送线 / 拣选墙 / 分拣机交互（启动线体、写入目的地、点亮指示灯等）
+*Human Task Node*：提示操作员执行动作（拣选、复核、装箱），等待操作完成反馈
+*Decision Node*：条件判断（称重偏差、货物异常、目的地变化）
+*Sub-Workflow Node*：可以嵌套子流程（比如“标准包装子流程”）
+—
+
+三、Workflow 引擎设计（你这套系统的灵魂）
+你可以做一个轻量的类似 BPMN 的引擎，但只专注于仓库控制场景的几个重点：
+
+1. 流程定义方式
+初期可以用 *JSON / YAML* 做配置：
+```json
+{
+"workflowCode": "OUTBOUND_TO_STORE_V1",
+"nodes": [
+{ "id": "N1_ASRS_PICK", "type": "ASRS_TASK", "next": "N2_AMR_MOVE_TO_PICKWALL" },
+{ "id": "N2_AMR_MOVE_TO_PICKWALL", "type": "RCS_MISSION", "next": "N3_PICK_WALL_PICK" },
+{ "id": "N3_PICK_WALL_PICK", "type": "HUMAN_TASK", "next": "N4_PACKING" },
+{ "id": "N4_PACKING", "type": "HUMAN_TASK", "next": "N5_SORTING" },
+{ "id": "N5_SORTING", "type": "SORTER_DEVICE", "next": null }
+]
+}
+```
+
+后期可以接一个 Web 配置界面，用拖拽节点的形式配置。
+2. 执行引擎
+针对每个 `WorkflowInstance`，维护当前 Node 状态：
+当 Node 完成（来自设备 / 人 / 定时器 回调），引擎根据 `next` / 条件流转到下一个 Node。
+每种 `NodeType` 有对应的 *执行 Handler*：
+`RcsMissionNodeHandler`
+`AsrsNodeHandler`
+`SorterNodeHandler`
+`HumanTaskNodeHandler` 等
+节点执行 → 生成 Task → 通过适配层调用具体设备 / RCS → 等待回调 / 轮询状态。
+3. 异常处理 & 重试策略
+Node 级别：
+支持自动重试（次数、间隔）
+支持异常分支（例如“称重超差 → 走人工复核子流程”）
+工作流级别：
+支持暂停 / 取消整个 WorkflowInstance
+支持人工强制跳转到某个节点（运维 UI）
+—
+
+四、设备 / RCS 对接层设计
+1. “统一接口 + 适配器” 模式
+1）统一的 RCS 抽象接口（WCS 视角）
+示例（伪接口）：
+
+```text
+RcsService {
+createMission(missionId, fromStation, toStation, payload) : MissionAck
+cancelMission(missionId) : Result
+queryMissionStatus(missionId) : MissionStatus
+subscribeEvents(callbackUrl/eventBusTopic)
+}
+```
+
+WCS 的 workflow 只和这个抽象接口打交道，完全不关心 Vendor A / Vendor B 的细节。
+
+2）厂商适配器
+`VendorARcsAdapter`
+`VendorBRcsAdapter`
+`VendorCRcsAdapter`
+各适配器完成：
+
+站点 / 路径 ID 映射（WCS 逻辑站点 → RCS 内部节点 ID）
+坐标系 / 地图 ID 适配（如导入各厂商地图，做对照表）
+WCS Mission 状态 ↔ RCS 状态枚举映射
+鉴权、签名、心跳机制
+可用一张 `rcs_vendor_config` 表：
+
+`vendorCode`
+`apiBaseUrl`
+`authConfig`
+`stationMapping`（JSON）
+`capabilities`（支持哪些任务类型）
+2. 直接对接设备（PLC / 分拣机 / 输送线 / 拣选墙等）
+1）设备抽象模型
+统一抽象设备能力，例如：
+
+`Conveyor`：`start(segmentId)`, `stop(segmentId)`, `setDestination(segmentId, destCode)`
+`Sorter`：`setSortPlan(planId)`, `bindDestination(chuteId, destCode)`, `readScanEvent()`
+`PickWall`：`lightCell(cellId, qty)`, `confirmPick(cellId, result)`
+Workflow 的 Node 不直接写 Modbus 寄存器，而是调用这些抽象方法。
+
+2）驱动 / 网关层
+`PLCDriver`：支持 Modbus TCP / Profinet / EtherNet/IP / OPC UA 等
+`SorterDriver`：对接分拣机厂商专有协议（通常 TCP Socket + 文本协议）
+`Camera / Scanner Driver`：扫码事件上报
+所有底层设备驱动通过 *消息总线* 把事件推给 WCS：
+
+Topic 示例：
+`device/{deviceId}/event`
+`rcs/{vendorCode}/mission/{missionId}/status`
+—
+
+五、资源 & 拓扑管理（让 Workflow 既“抽象”又能落到现场）
+1. 仓库拓扑
+区域：ASRS 区、拣选墙区、缓存区、包装区、出库月台区…
+工作站：`PICK_STATION_01`、`PACK_STATION_05`…
+路径：AMR / 输送线可走的路径，一个或多个图。
+2. 设备与拓扑绑定
+`device` 表：
+`deviceId`, `type`, `vendor`, `location`, `capabilities`
+`station_device_binding`：
+某工作站关联哪些设备（输送段、扫码器、指示灯）
+Workflow 中用 *逻辑概念*：
+
+`fromStation = "ASRS_BUFFER_A"`
+`toStation = "PICK_WALL_STATION_02"`
+由资源管理层 + 适配器，映射到具体：
+
+哪个 RCS Map 的哪两个 Node
+对应的 PLC 地址 / 输送线段 ID
+—
+
+六、来一个完整业务流程例子（门店补货 + 拣选墙）
+*场景：*
+
+日常门店补货
+Job 从 WMS 来到 WCS，类型为 `REPLENISH_TO_PICK_WALL`
+流程：立库出库 → AMR 搬到拣选墙 → 人工拣选 → 拣完 AMR 拉走 → 出库
+1. WMS → WCS：创建 Job
+API：`POST /jobs`
+内容：
+```json
+{
+"jobType": "REPLENISH_TO_PICK_WALL",
+"storeCode": "S001",
+"skuList": [ ... ],
+"priority": 5
+}
+```
+
+WCS：
+
+存 Job
+根据 `jobType` 加载 `REPLENISH_TO_PICK_WALL_V1` WorkflowDefinition
+创建 WorkflowInstance
+2. Node1：ASRS 出库
+引擎执行 `N1_ASRS_PICK`：
+创建 Task：`ASRS_PICK`
+调用 ASRS 接口出库指定托盘 / 料箱到 `ASRS_OUT_BUFFER_X`
+等待 ASRS 回调 “到位” 或轮询状态。
+完成后，进入下一个 Node。
+
+3. Node2：RCS 搬运到拣选墙
+引擎执行 `N2_AMR_MOVE_TO_PICK_WALL`：
+根据负载 / 站点配置选择一个 RCS Vendor（或指定）
+调用统一 `RcsService.createMission()`：
+`missionId = jobId + "-1"`
+`fromStation = "ASRS_OUT_BUFFER_X"`
+`toStation = "PICK_WALL_STATION_02"`
+`payload`：托盘号 / 料箱号
+适配器把站点映射成具体 RCS 节点 ID，下发任务。
+等待 RCS 事件：“任务完成，车停在拣选墙前”。
+4. Node3：拣选墙拣选（Human + Device 混合）
+workflow 进入 `N3_PICK_WALL_PICK`：
+点亮拣选墙对应格口，屏幕显示门店 SKU & 数量
+记录此时 “拣选任务” 已下发
+WCS 等待来自拣选墙系统 / 人工操作界面的回调（每行拣完确认）
+若出错（缺货、坏货），可触发异常子流程（例如生成缺货任务）。
+5. Node4：搬运空容器回库 / 转下一流程
+拣选完成后：
+进入 `N4_RETURN_TOTE` Node：
+再下发一个 RCS Mission：把空箱拉回某 Buffer 或输送到包装区
+若是门店一车到底，也可以直接进入 “出库输送” Node。
+6. Workflow 完成 & 回调 WMS
+全部节点成功，WorkflowInstance 标记 `COMPLETED`。
+WCS 调用 WMS 回调接口：
+通知门店补货任务完成
+返回拣选明细、缺货信息等。
+—
+
+七、实现层面的几点建议
+1. 技术栈（可以根据你现有经验选）
+*后端语言：Java / .NET / Node.js 都可以，你之前 Java/Node 都熟，做 WCS 推荐 **Java + Spring Boot* 或 *.NET*，稳定一点。
+*数据库*：PostgreSQL / MySQL（事务数据），InfluxDB / Prometheus（监控时序）。
+*消息总线*：Kafka / RabbitMQ（更适合事件驱动架构）。
+*Workflow 引擎*：
+可自研轻量引擎（自己写状态机），或者基于 Camunda / Flowable 做定制简化。
+*前端 UI*：
+大屏监控 + 设备状态视图 + 工作流可视化（流程图 + 实际节点状态）
+2. 关键非功能点
+*高可用 & 容错*：RCS / 设备掉线时的降级策略、任务恢复机制。
+*幂等与重试*：下发任务、状态更新必须考虑幂等。
+*审计与追溯*：每个 Node 的执行记录、每次与设备/RCS 交互的日志。
+*仿真 / 沙箱环境*：为每个 RCS / 设备做模拟器，方便你在没有现场设备时测试 workflow。
+ 

@@ -1,0 +1,101 @@
+@startuml
+!theme cerulean
+title Facility 模块 - 系统架构图
+
+' 外部系统
+package "External Systems" {
+  [WMS Frontend] as WMS_FE
+  [WCS Frontend] as WCS_FE
+}
+
+' 网关层
+package "Gateway Layer" {
+  [API Gateway] as GW
+}
+
+' 应用层
+package "WMS Application" {
+  package "wms-app" {
+    [Equipment Controller] as EQ_CTRL
+    [Location Controller] as LOC_CTRL
+    [VLG Controller] as VLG_CTRL
+    [PickToLight Controller] as PTL_CTRL
+  }
+  
+  package "Application Services" {
+    [Equipment AppService] as EQ_APP
+    [Location AppService] as LOC_APP
+    [VLG AppService] as VLG_APP
+    [PickToLight AppService] as PTL_APP
+  }
+}
+
+' 领域层
+package "Domain Layer" {
+  package "Equipment Domain" {
+    [Equipment Aggregate] as EQ_AGG
+    [FillRateRecord] as FILL_RATE
+    [Inspection] as INSPECT
+  }
+  
+  package "VLG Domain" {
+    [VirtualLocationGroup] as VLG_AGG
+    [VirtualLocationTag] as VLG_TAG
+    [CustomerVlgAllocation] as CVA
+    [ItemVlg] as ITEM_VLG
+    [ItemGroupVlg] as IG_VLG
+    [TitleVlg] as TITLE_VLG
+  }
+  
+  package "PickToLight Domain" {
+    [PickToLight Aggregate] as PTL_AGG
+    [PickToLightGroup] as PTL_GRP
+  }
+}
+
+' 基础设施层
+package "Infrastructure Layer" {
+  database "MySQL" as DB
+  [Equipment Repository] as EQ_REPO
+  [VLG Repository] as VLG_REPO
+  [PickToLight Repository] as PTL_REPO
+}
+
+' 依赖关系
+WMS_FE --> GW
+WCS_FE --> GW
+GW --> EQ_CTRL
+GW --> LOC_CTRL
+GW --> VLG_CTRL
+GW --> PTL_CTRL
+
+EQ_CTRL --> EQ_APP
+LOC_CTRL --> LOC_APP
+VLG_CTRL --> VLG_APP
+PTL_CTRL --> PTL_APP
+
+EQ_APP --> EQ_AGG
+LOC_APP --> VLG_AGG
+VLG_APP --> VLG_AGG
+PTL_APP --> PTL_AGG
+
+EQ_AGG --> EQ_REPO
+VLG_AGG --> VLG_REPO
+PTL_AGG --> PTL_REPO
+
+EQ_REPO --> DB
+VLG_REPO --> DB
+PTL_REPO --> DB
+
+' 聚合内部关系
+EQ_AGG --> FILL_RATE
+EQ_AGG --> INSPECT
+VLG_AGG --> VLG_TAG
+VLG_AGG --> CVA
+VLG_AGG --> ITEM_VLG
+VLG_AGG --> IG_VLG
+VLG_AGG --> TITLE_VLG
+PTL_AGG --> PTL_GRP
+
+@enduml
+

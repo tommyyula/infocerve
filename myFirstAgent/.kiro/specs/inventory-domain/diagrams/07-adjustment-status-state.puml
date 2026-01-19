@@ -1,0 +1,39 @@
+@startuml 调整单状态流转图
+!theme plain
+title 调整单状态流转图 (Adjustment Status)
+
+[*] --> NEW : 创建调整单
+
+NEW --> APPROVED : 审批通过
+NEW --> DECLINED : 审批拒绝
+NEW --> CANCELLED : 取消
+
+APPROVED --> [*]
+DECLINED --> [*]
+CANCELLED --> [*]
+
+note right of NEW
+  新建状态
+  调整单刚创建，等待审批
+end note
+
+note right of APPROVED
+  已审批状态
+  调整单已通过审批并执行
+  - 库存已调整
+  - 历史已记录
+end note
+
+note right of DECLINED
+  已拒绝状态
+  调整单被拒绝
+  - 库存未变更
+end note
+
+note right of CANCELLED
+  已取消状态
+  调整单被取消
+  - 库存未变更
+end note
+
+@enduml
