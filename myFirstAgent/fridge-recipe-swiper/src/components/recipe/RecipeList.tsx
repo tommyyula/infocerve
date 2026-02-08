@@ -1,4 +1,5 @@
 import type { Recipe } from '@/types';
+import { useLanguageStore } from '@/stores/useLanguageStore';
 
 interface RecipeListProps {
   recipes: Recipe[];
@@ -6,6 +7,7 @@ interface RecipeListProps {
 }
 
 const emojiMap: Record<string, string> = {
+  // Chinese keywords
   炒蛋: '🍳',
   蛋: '🥚',
   汤: '🍲',
@@ -15,29 +17,41 @@ const emojiMap: Record<string, string> = {
   鱼: '🐟',
   虾: '🦐',
   菜: '🥬',
+  沙拉: '🥗',
+  // English keywords
+  egg: '🥚',
+  soup: '🍲',
+  noodle: '🍜',
+  rice: '🍚',
+  meat: '🥩',
+  fish: '🐟',
+  shrimp: '🦐',
+  salad: '🥗',
+  vegetable: '🥬',
+  pancake: '🥞',
+  sandwich: '🥪',
   default: '🍽️',
 };
 
 function getEmoji(name: string): string {
+  const lowerName = name.toLowerCase();
   for (const [key, emoji] of Object.entries(emojiMap)) {
-    if (name.includes(key)) return emoji;
+    if (key !== 'default' && (name.includes(key) || lowerName.includes(key.toLowerCase()))) {
+      return emoji;
+    }
   }
   return emojiMap.default;
 }
 
-const difficultyMap = {
-  easy: '简单',
-  medium: '中等',
-  hard: '困难',
-};
-
 export function RecipeList({ recipes, onItemClick }: RecipeListProps) {
+  const { t } = useLanguageStore();
+
   if (recipes.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         <p className="text-4xl mb-2">😅</p>
-        <p>没有收藏任何食谱</p>
-        <p className="text-sm">试试多右滑几个吧！</p>
+        <p>{t('noFavorites')}</p>
+        <p className="text-sm">{t('trySwipeRight')}</p>
       </div>
     );
   }
@@ -56,7 +70,7 @@ export function RecipeList({ recipes, onItemClick }: RecipeListProps) {
           <div className="flex-1">
             <h4 className="font-semibold text-gray-800">{recipe.name}</h4>
             <p className="text-sm text-gray-500">
-              ⏱️ {recipe.cookingTime}分钟 · {difficultyMap[recipe.difficulty]}
+              ⏱️ {recipe.cookingTime}{t('minutes')} · {t(`difficulty.${recipe.difficulty}`)}
             </p>
           </div>
         </div>

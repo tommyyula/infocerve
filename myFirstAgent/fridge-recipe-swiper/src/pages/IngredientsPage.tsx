@@ -1,12 +1,17 @@
 import { IngredientList, AddIngredient } from '@/components/ingredients';
 import { Button } from '@/components/ui';
 import { useAppStore } from '@/stores/useAppStore';
+import { useLanguageStore } from '@/stores/useLanguageStore';
 
 export function IngredientsPage() {
-  const { ingredients, removeIngredient, addIngredient, setStep } = useAppStore();
+  const { ingredients, removeIngredient, addIngredient, setStep, setApiLanguage } = useAppStore();
+  const { t, language } = useLanguageStore();
 
   const handleGenerateRecipes = () => {
     if (ingredients.length > 0) {
+      // Capture current language before navigating
+      setApiLanguage(language);
+      console.log('Setting API language to:', language);
       setStep('loading');
     }
   };
@@ -14,8 +19,8 @@ export function IngredientsPage() {
   return (
     <div className="flex-1 flex flex-col p-5">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-2">🥬 确认食材</h2>
-        <p className="text-gray-500 text-sm">检查识别结果，可以添加或删除</p>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">🥬 {t('confirmIngredients')}</h2>
+        <p className="text-gray-500 text-sm">{t('ingredientsSubtitle')}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -35,14 +40,14 @@ export function IngredientsPage() {
           disabled={ingredients.length === 0}
           fullWidth
         >
-          生成食谱 🍳 ({ingredients.length} 种食材)
+          {t('generateRecipes')} 🍳 ({ingredients.length} {t('ingredientCount')})
         </Button>
         <Button
           variant="secondary"
           onClick={() => setStep('upload')}
           fullWidth
         >
-          返回上传
+          {t('backToUpload')}
         </Button>
       </div>
     </div>

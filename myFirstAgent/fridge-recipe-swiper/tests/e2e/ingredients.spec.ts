@@ -64,7 +64,7 @@ test.describe('Ingredients Page', () => {
     await navigateToIngredientsPage(page);
 
     // Find the add ingredient input
-    const addInput = page.getByPlaceholder('Add ingredient...');
+    const addInput = page.getByPlaceholder('添加食材...');
     await addInput.fill('豆腐');
 
     // Click add button or press Enter
@@ -81,7 +81,7 @@ test.describe('Ingredients Page', () => {
     const initialCount = await ingredientTags.count();
 
     // Try to add empty ingredient
-    const addInput = page.getByPlaceholder('Add ingredient...');
+    const addInput = page.getByPlaceholder('添加食材...');
     await addInput.fill('   ');
     await addInput.press('Enter');
 

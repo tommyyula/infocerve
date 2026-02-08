@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { RecipeList, RecipeDetail } from '@/components/recipe';
 import { Button, Modal } from '@/components/ui';
 import { useFavoriteStore } from '@/stores/useFavoriteStore';
+import { useLanguageStore } from '@/stores/useLanguageStore';
 import type { Recipe } from '@/types';
 
 interface FavoritesPageProps {
@@ -10,14 +11,15 @@ interface FavoritesPageProps {
 
 export function FavoritesPage({ onBack }: FavoritesPageProps) {
   const { favorites, removeFavorite, clearFavorites } = useFavoriteStore();
+  const { t } = useLanguageStore();
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
   return (
     <div className="flex-1 flex flex-col p-5">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-2">❤️ 我的收藏</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">❤️ {t('favoritesTitle')}</h2>
         <p className="text-gray-500 text-sm">
-          共 {favorites.length} 个食谱
+          {t('totalRecipes', { count: favorites.length })}
         </p>
       </div>
 
@@ -30,7 +32,7 @@ export function FavoritesPage({ onBack }: FavoritesPageProps) {
 
       <div className="mt-6 space-y-3">
         <Button onClick={onBack} fullWidth>
-          返回 ←
+          {t('backButton')} ←
         </Button>
         {favorites.length > 0 && (
           <Button
@@ -38,7 +40,7 @@ export function FavoritesPage({ onBack }: FavoritesPageProps) {
             onClick={clearFavorites}
             fullWidth
           >
-            清空收藏
+            {t('clearFavorites')}
           </Button>
         )}
       </div>
@@ -60,7 +62,7 @@ export function FavoritesPage({ onBack }: FavoritesPageProps) {
                 }}
                 fullWidth
               >
-                取消收藏
+                {t('removeFavorite')}
               </Button>
             </div>
           </div>

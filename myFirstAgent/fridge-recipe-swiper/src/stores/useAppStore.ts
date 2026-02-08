@@ -19,6 +19,9 @@ interface AppState {
   currentIndex: number;
   isGenerating: boolean;
 
+  // Language for API calls (captured when starting a process)
+  apiLanguage: 'zh' | 'en';
+
   // Error state
   error: string | null;
 
@@ -37,6 +40,7 @@ interface AppState {
   nextCard: () => void;
   setError: (error: string | null) => void;
   clearError: () => void;
+  setApiLanguage: (language: 'zh' | 'en') => void;
   reset: () => void;
 }
 
@@ -50,6 +54,7 @@ const initialState = {
   recipes: [],
   currentIndex: 0,
   isGenerating: false,
+  apiLanguage: 'zh' as 'zh' | 'en',
   error: null,
 };
 
@@ -95,6 +100,8 @@ export const useAppStore = create<AppState>((set) => ({
   setError: (error) => set({ error }),
 
   clearError: () => set({ error: null }),
+
+  setApiLanguage: (language) => set({ apiLanguage: language }),
 
   reset: () => set(initialState),
 }));

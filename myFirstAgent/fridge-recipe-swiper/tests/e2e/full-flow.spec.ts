@@ -121,7 +121,7 @@ test.describe('Complete User Flow', () => {
     await expect(page.getByText('青椒')).toBeVisible();
 
     // Step 7: Add a custom ingredient
-    const addInput = page.getByPlaceholder('Add ingredient...');
+    const addInput = page.getByPlaceholder('添加食材...');
     await addInput.fill('米饭');
     await addInput.press('Enter');
     await expect(page.getByText('米饭')).toBeVisible();
