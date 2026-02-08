@@ -39,7 +39,7 @@ test.describe('Image Upload', () => {
     await page.getByText('重新上传').click();
 
     // Verify image is cleared - upload area should be visible again
-    await expect(page.getByText('Click to upload or drag & drop')).toBeVisible();
+    await expect(page.getByText('拍摄照片')).toBeVisible();
   });
 
   test('should only accept image files', async ({ page }) => {

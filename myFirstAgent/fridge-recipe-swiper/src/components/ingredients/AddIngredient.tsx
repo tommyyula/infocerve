@@ -1,5 +1,6 @@
 import { useState, KeyboardEvent } from 'react';
 import { Button } from '@/components/ui';
+import { useLanguageStore } from '@/stores/useLanguageStore';
 
 interface AddIngredientProps {
   onAdd: (name: string) => void;
@@ -7,6 +8,7 @@ interface AddIngredientProps {
 
 export function AddIngredient({ onAdd }: AddIngredientProps) {
   const [value, setValue] = useState('');
+  const { t } = useLanguageStore();
 
   const handleAdd = () => {
     if (value.trim()) {
@@ -28,11 +30,11 @@ export function AddIngredient({ onAdd }: AddIngredientProps) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Add ingredient..."
+        placeholder={t('addIngredientPlaceholder')}
         className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none transition-colors"
       />
       <Button onClick={handleAdd} variant="secondary" size="md">
-        Add
+        {t('addButton')}
       </Button>
     </div>
   );

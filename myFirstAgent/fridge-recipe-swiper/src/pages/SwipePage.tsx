@@ -3,11 +3,13 @@ import { SwipeableCard, RecipeDetail } from '@/components/recipe';
 import { Modal } from '@/components/ui';
 import { useAppStore } from '@/stores/useAppStore';
 import { useFavoriteStore } from '@/stores/useFavoriteStore';
+import { useLanguageStore } from '@/stores/useLanguageStore';
 import type { Recipe, SwipeDirection } from '@/types';
 
 export function SwipePage() {
   const { recipes, currentIndex, setCurrentIndex, setStep } = useAppStore();
   const { addFavorite } = useFavoriteStore();
+  const { t } = useLanguageStore();
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
   const handleSwipe = (direction: SwipeDirection) => {
@@ -29,7 +31,7 @@ export function SwipePage() {
   return (
     <div className="flex-1 flex flex-col p-5">
       <div className="text-center mb-4">
-        <h2 className="text-xl font-bold text-gray-800">👆 左滑跳过，右滑收藏</h2>
+        <h2 className="text-xl font-bold text-gray-800">👆 {t('swipeHint')}</h2>
         <p className="text-gray-500 text-sm mt-1">
           {currentIndex + 1} / {recipes.length}
         </p>
@@ -50,7 +52,7 @@ export function SwipePage() {
         ) : (
           <div className="text-center text-gray-500">
             <p className="text-4xl mb-2">🎉</p>
-            <p>所有食谱都看完啦！</p>
+            <p>{t('allRecipesDone')}</p>
           </div>
         )}
       </div>

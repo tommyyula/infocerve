@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Spinner } from '@/components/ui';
 import { useAppStore } from '@/stores/useAppStore';
+import { useLanguageStore } from '@/stores/useLanguageStore';
 import { recognizeIngredients, generateRecipes } from '@/services/api';
 
 // Convert blob URL to base64
@@ -19,47 +20,55 @@ export function LoadingPage() {
   const {
     uploadedImage,
     ingredients,
+    apiLanguage,
     setIngredients,
     setRecipes,
     setStep,
     setError,
   } = useAppStore();
+  const { t } = useLanguageStore();
 
   useEffect(() => {
     const process = async () => {
       try {
+        // Use the language that was captured when the user started the process
+        const language = apiLanguage;
+        console.log('LoadingPage using apiLanguage from store:', language);
+
         // If we have an image but no ingredients, recognize them first
         if (uploadedImage && ingredients.length === 0) {
           // Convert blob URL to base64 for API
           const base64Image = await blobUrlToBase64(uploadedImage);
-          const recognized = await recognizeIngredients(base64Image);
+          console.log('Calling recognizeIngredients with language:', language);
+          const recognized = await recognizeIngredients(base64Image, language);
           setIngredients(recognized);
           setStep('ingredients');
         }
         // If we have ingredients, generate recipes
         else if (ingredients.length > 0) {
-          const recipes = await generateRecipes(ingredients);
+          console.log('Calling generateRecipes with language:', language);
+          const recipes = await generateRecipes(ingredients, language);
           setRecipes(recipes);
           setStep('swipe');
         }
       } catch (error) {
-        setError(error instanceof Error ? error.message : '处理失败，请重试');
+        setError(error instanceof Error ? error.message : t('errorRecognize'));
         setStep('upload');
       }
     };
 
     process();
-  }, []);
+  }, [apiLanguage]);
 
   const message = ingredients.length === 0
-    ? '正在识别食材...'
-    : '正在生成美味食谱...';
+    ? t('recognizingText')
+    : t('generatingText');
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-5">
       <Spinner size="lg" />
       <p className="mt-4 text-gray-600 text-lg">{message}</p>
-      <p className="mt-2 text-gray-400 text-sm">AI 正在努力工作中</p>
+      <p className="mt-2 text-gray-400 text-sm">{t('aiWorking')}</p>
     </div>
   );
 }

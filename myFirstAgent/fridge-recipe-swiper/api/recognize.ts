@@ -9,10 +9,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { image } = req.body;
+    const { image, language = 'zh' } = req.body;
 
     if (!image) {
-      return res.status(400).json({ message: '请提供图片' });
+      return res.status(400).json({ message: language === 'zh' ? '请提供图片' : 'Please provide an image' });
     }
 
     // Extract base64 data from data URL
@@ -20,7 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-    const prompt = `分析这张冰箱食材照片，识别所有可见的食材。
+    const prompt = language === 'zh'
+      ? `分析这张冰箱食材照片，识别所有可见的食材。
 
 请以 JSON 格式返回食材列表，格式如下：
 {
@@ -34,7 +35,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 2. name 用中文
 3. confidence 表示识别置信度，0-1 之间
 4. 尽量识别所有可见食材
-5. 如果无法识别某个物品，请跳过`;
+5. 如果无法识别某个物品，请跳过`
+      : `Analyze this fridge photo and identify all visible ingredients.
+
+Return the ingredient list in JSON format as follows:
+{
+  "ingredients": [
+    { "name": "ingredient name", "quantity": "approximate amount (optional)", "confidence": 0.9 }
+  ]
+}
+
+Notes:
+1. Return only JSON, no other text
+2. name should be in English
+3. confidence represents recognition confidence, between 0-1
+4. Try to identify all visible ingredients
+5. Skip any items you cannot identify`;
 
     const result = await model.generateContent([
       prompt,
@@ -52,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Parse JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('无法解析 AI 响应');
+      throw new Error(language === 'zh' ? '无法解析 AI 响应' : 'Unable to parse AI response');
     }
 
     const data = JSON.parse(jsonMatch[0]);
@@ -62,8 +78,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error) {
     console.error('Recognize error:', error);
+    const lang = req.body?.language || 'zh';
     return res.status(500).json({
-      message: error instanceof Error ? error.message : '食材识别失败',
+      message: error instanceof Error ? error.message : (lang === 'zh' ? '食材识别失败' : 'Failed to recognize ingredients'),
     });
   }
 }

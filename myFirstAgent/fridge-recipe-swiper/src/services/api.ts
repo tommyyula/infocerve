@@ -2,36 +2,40 @@ import type { Ingredient, Recipe } from '@/types';
 
 const API_BASE = '/api';
 
-export async function recognizeIngredients(imageBase64: string): Promise<Ingredient[]> {
+export async function recognizeIngredients(imageBase64: string, language: 'zh' | 'en' = 'zh'): Promise<Ingredient[]> {
   const response = await fetch(`${API_BASE}/recognize`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ image: imageBase64 }),
+    body: JSON.stringify({ image: imageBase64, language }),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || '食材识别失败');
+    throw new Error(error.message || (language === 'zh' ? '食材识别失败' : 'Failed to recognize ingredients'));
   }
 
   const data = await response.json();
   return data.ingredients;
 }
 
-export async function generateRecipes(ingredients: Ingredient[]): Promise<Recipe[]> {
+export async function generateRecipes(ingredients: Ingredient[], language: 'zh' | 'en' = 'zh'): Promise<Recipe[]> {
+  console.log('API client generateRecipes called with language:', language);
+  const requestBody = { ingredients, language };
+  console.log('Request body:', JSON.stringify(requestBody).slice(0, 200));
+
   const response = await fetch(`${API_BASE}/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ ingredients }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || '食谱生成失败');
+    throw new Error(error.message || (language === 'zh' ? '食谱生成失败' : 'Failed to generate recipes'));
   }
 
   const data = await response.json();
