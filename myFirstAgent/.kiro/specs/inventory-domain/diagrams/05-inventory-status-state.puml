@@ -1,0 +1,53 @@
+@startuml 库存状态流转图
+!theme plain
+title 库存状态流转图 (Inventory Status)
+
+[*] --> RECEIVING : 收货创建
+
+RECEIVING --> OPEN : 上架完成
+
+OPEN --> PICKED : 拣货
+OPEN --> ADJUSTOUT : 调整出库
+OPEN --> ONHOLD : 冻结
+OPEN --> DAMAGE : 损坏标记
+
+PICKED --> PACKED : 打包
+PICKED --> OPEN : 放回
+
+PACKED --> LOADED : 装车
+PACKED --> PICKED : 取消打包
+
+LOADED --> SHIPPED : 发货
+LOADED --> PACKED : 取消装车
+
+SHIPPED --> [*]
+
+ONHOLD --> OPEN : 解冻
+DAMAGE --> OPEN : 修复
+DAMAGE --> ADJUSTOUT : 报废
+
+ADJUSTOUT --> [*]
+
+RESTOCKED --> OPEN : 返库完成
+
+note right of RECEIVING
+  收货中状态
+  库存刚创建时的初始状态
+end note
+
+note right of OPEN
+  可用状态
+  正常可分配的库存
+end note
+
+note right of ADJUSTOUT
+  调整出库状态
+  已从系统中移除的库存
+end note
+
+note right of SHIPPED
+  已发货状态
+  库存已离开仓库
+end note
+
+@enduml

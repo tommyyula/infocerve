@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fridge Recipe Swiper - 原型演示</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 400px;
+      height: 100vh;
+      max-height: 800px;
+      background: #f5f5f5;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      color: #333;
+    }
+
+    .header .favorites-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    /* Screen Container */
+    .screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* Upload Screen */
+    .upload-screen {
+      padding: 40px 20px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .upload-area {
+      width: 100%;
+      max-width: 300px;
+      aspect-ratio: 1;
+      border: 3px dashed #ccc;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: white;
+    }
+
+    .upload-area:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+
+    .upload-area.has-image {
+      border: none;
+      padding: 0;
+    }
+
+    .upload-area img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 20px;
+    }
+
+    .upload-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .upload-text {
+      color: #666;
+      font-size: 16px;
+    }
+
+    .upload-btn {
+      margin-top: 24px;
+      padding: 16px 48px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .upload-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .upload-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Ingredients Screen */
+    .ingredients-screen {
+      padding: 20px;
+    }
+
+    .ingredients-screen h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .ingredients-screen p {
+      color: #666;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .ingredients-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .ingredient-tag {
+      background: white;
+      padding: 10px 16px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .ingredient-tag .remove {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .add-ingredient {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .add-ingredient input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #eee;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+
+    .add-ingredient button {
+      padding: 12px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .generate-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 15px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: auto;
+    }
+
+    /* Loading Screen */
+    .loading-screen {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid #eee;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 18px;
+      color: #333;
+    }
+
+    /* Swipe Screen */
+    .swipe-screen {
+      padding: 20px;
+      position: relative;
+    }
+
+    .cards-container {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .recipe-card {
+      position: absolute;
+      width: 100%;
+      max-width: 340px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      overflow: hidden;
+      cursor: grab;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    .recipe-card:active {
+      cursor: grabbing;
+    }
+
+    .recipe-card.swiping-left {
+      transform: translateX(-150%) rotate(-30deg);
+      opacity: 0;
+    }
+
+    .recipe-card.swiping-right {
+      transform: translateX(150%) rotate(30deg);
+      opacity: 0;
+    }
+
+    .card-image {
+      width: 100%;
+      height: 200px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+    }
+
+    .card-content {
+      padding: 20px;
+    }
+
+    .card-content h3 {
+      font-size: 22px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .card-description {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .swipe-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      padding: 20px;
+    }
+
+    .swipe-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: none;
+      font-size: 32px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .swipe-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .swipe-btn.skip {
+      background: white;
+      color: #ff6b6b;
+    }
+
+    .swipe-btn.like {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+    }
+
+    /* Result Screen */
+    .result-screen {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .result-screen h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .result-screen p {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .result-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .result-item {
+      background: white;
+      border-radius: 15px;
+      padding: 16px;
+      display: flex;
+      gap: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+
+    .result-item-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+    }
+
+    .result-item-info h4 {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .result-item-info span {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .restart-btn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 15px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Detail Modal */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      padding: 30px 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    .modal-header h3 {
+      color: white;
+      font-size: 24px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.3);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modal-section {
+      margin-bottom: 20px;
+    }
+
+    .modal-section h4 {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-section ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .modal-section li {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      color: #666;
+    }
+
+    .modal-section li:last-child {
+      border-bottom: none;
+    }
+
+    .step-number {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background: #667eea;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 24px;
+      font-size: 12px;
+      margin-right: 10px;
+    }
+
+    /* Responsive */
+    @media (max-width: 420px) {
+      .app-container {
+        border-radius: 0;
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <h1>🍳 冰箱食谱</h1>
+      <button class="favorites-btn" onclick="showFavorites()">❤️</button>
+    </header>
+
+    <!-- Screen 1: Upload -->
+    <div id="upload-screen" class="screen upload-screen active">
+      <div class="upload-area" id="upload-area" onclick="simulateUpload()">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">点击上传冰箱食材照片</div>
+      </div>
+      <button class="upload-btn" id="analyze-btn" disabled onclick="analyzeImage()">
+        开始识别食材
+      </button>
+    </div>
+
+    <!-- Screen 2: Ingredients -->
+    <div id="ingredients-screen" class="screen ingredients-screen">
+      <h2>识别结果</h2>
+      <p>AI 已识别以下食材，可手动调整</p>
+      <div class="ingredients-list" id="ingredients-list"></div>
+      <div class="add-ingredient">
+        <input type="text" id="new-ingredient" placeholder="添加其他食材...">
+        <button onclick="addIngredient()">添加</button>
+      </div>
+      <button class="generate-btn" onclick="generateRecipes()">
+        生成食谱推荐 ✨
+      </button>
+    </div>
+
+    <!-- Screen 3: Loading -->
+    <div id="loading-screen" class="screen loading-screen">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">正在识别食材...</div>
+    </div>
+
+    <!-- Screen 4: Swipe -->
+    <div id="swipe-screen" class="screen swipe-screen">
+      <div class="cards-container" id="cards-container"></div>
+      <div class="swipe-buttons">
+        <button class="swipe-btn skip" onclick="swipeCard('left')">✕</button>
+        <button class="swipe-btn like" onclick="swipeCard('right')">❤️</button>
+      </div>
+    </div>
+
+    <!-- Screen 5: Results -->
+    <div id="result-screen" class="screen result-screen">
+      <h2>🎉 选择完成！</h2>
+      <p>你收藏了以下食谱：</p>
+      <div class="result-list" id="result-list"></div>
+      <button class="restart-btn" onclick="restart()">重新开始</button>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal" id="detail-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <h3 id="modal-title">番茄炒蛋</h3>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <h4>⏱️ 烹饪时间：<span id="modal-time">15分钟</span></h4>
+        </div>
+        <div class="modal-section">
+          <h4>🥬 所需食材</h4>
+          <ul id="modal-ingredients"></ul>
+        </div>
+        <div class="modal-section">
+          <h4>👨‍🍳 烹饪步骤</h4>
+          <ul id="modal-steps"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Mock Data
+    const mockIngredients = ['番茄', '鸡蛋', '青椒', '洋葱', '大蒜', '生姜'];
+
+    const mockRecipes = [
+      {
+        id: '1',
+        name: '番茄炒蛋',
+        emoji: '🍳',
+        time: 15,
+        difficulty: '简单',
+        description: '经典家常菜，酸甜可口，营养丰富',
+        ingredients: ['番茄 2个', '鸡蛋 3个', '盐 适量', '糖 少许', '葱花 适量'],
+        steps: ['番茄切块，鸡蛋打散加少许盐', '热锅冷油，倒入蛋液炒至凝固盛出', '锅中加油，放入番茄翻炒出汁', '加入炒好的鸡蛋，加盐和糖调味', '撒上葱花即可出锅']
+      },
+      {
+        id: '2',
+        name: '青椒炒蛋',
+        emoji: '🥚',
+        time: 12,
+        difficulty: '简单',
+        description: '清爽下饭，简单快手',
+        ingredients: ['青椒 2个', '鸡蛋 3个', '盐 适量', '料酒 少许'],
+        steps: ['青椒切丝，鸡蛋打散', '热锅下油，炒散鸡蛋盛出', '青椒丝下锅翻炒至断生', '倒入鸡蛋，加盐调味', '翻炒均匀即可']
+      },
+      {
+        id: '3',
+        name: '洋葱炒蛋',
+        emoji: '🧅',
+        time: 10,
+        difficulty: '简单',
+        description: '洋葱的甜味与鸡蛋完美结合',
+        ingredients: ['洋葱 1个', '鸡蛋 3个', '盐 适量', '胡椒粉 少许'],
+        steps: ['洋葱切丝，鸡蛋打散', '热锅下油，炒香洋葱', '倒入蛋液，轻轻翻炒', '加盐和胡椒粉调味', '炒至鸡蛋凝固即可']
+      },
+      {
+        id: '4',
+        name: '番茄蛋汤',
+        emoji: '🍲',
+        time: 20,
+        difficulty: '简单',
+        description: '开胃暖身，老少皆宜',
+        ingredients: ['番茄 2个', '鸡蛋 2个', '葱花 适量', '盐 适量', '香油 少许'],
+        steps: ['番茄切块，鸡蛋打散', '锅中加水烧开，放入番茄', '煮至番茄软烂出汁', '淋入蛋液，轻轻搅动', '加盐调味，撒葱花淋香油']
+      },
+      {
+        id: '5',
+        name: '蒜蓉炒青椒',
+        emoji: '🌶️',
+        time: 8,
+        difficulty: '简单',
+        description: '蒜香四溢，清脆爽口',
+        ingredients: ['青椒 3个', '大蒜 5瓣', '盐 适量', '生抽 少许'],
+        steps: ['青椒切块，大蒜切末', '热锅下油，爆香蒜末', '放入青椒大火翻炒', '加盐和生抽调味', '炒至青椒断生即可']
+      }
+    ];
+
+    let currentIngredients = [];
+    let currentRecipes = [];
+    let currentCardIndex = 0;
+    let favorites = [];
+
+    // Screen Navigation
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    // Upload Simulation
+    function simulateUpload() {
+      const uploadArea = document.getElementById('upload-area');
+      uploadArea.innerHTML = '<img src="https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=400" alt="冰箱食材">';
+      uploadArea.classList.add('has-image');
+      document.getElementById('analyze-btn').disabled = false;
+    }
+
+    // Analyze Image
+    function analyzeImage() {
+      showScreen('loading-screen');
+      document.getElementById('loading-text').textContent = '正在识别食材...';
+
+      setTimeout(() => {
+        currentIngredients = [...mockIngredients];
+        renderIngredients();
+        showScreen('ingredients-screen');
+      }, 2000);
+    }
+
+    // Render Ingredients
+    function renderIngredients() {
+      const list = document.getElementById('ingredients-list');
+      list.innerHTML = currentIngredients.map((ing, i) => `
+        <div class="ingredient-tag">
+          ${ing}
+          <button class="remove" onclick="removeIngredient(${i})">×</button>
+        </div>
+      `).join('');
+    }
+
+    // Remove Ingredient
+    function removeIngredient(index) {
+      currentIngredients.splice(index, 1);
+      renderIngredients();
+    }
+
+    // Add Ingredient
+    function addIngredient() {
+      const input = document.getElementById('new-ingredient');
+      if (input.value.trim()) {
+        currentIngredients.push(input.value.trim());
+        input.value = '';
+        renderIngredients();
+      }
+    }
+
+    // Generate Recipes
+    function generateRecipes() {
+      showScreen('loading-screen');
+      document.getElementById('loading-text').textContent = '正在生成食谱推荐...';
+
+      setTimeout(() => {
+        currentRecipes = [...mockRecipes];
+        currentCardIndex = 0;
+        favorites = [];
+        renderCards();
+        showScreen('swipe-screen');
+      }, 2500);
+    }
+
+    // Render Cards
+    function renderCards() {
+      const container = document.getElementById('cards-container');
+      container.innerHTML = currentRecipes.slice(currentCardIndex).reverse().map((recipe, i) => `
+        <div class="recipe-card" style="z-index: ${currentRecipes.length - currentCardIndex - i}"
+             onclick="showDetail('${recipe.id}')">
+          <div class="card-image">${recipe.emoji}</div>
+          <div class="card-content">
+            <h3>${recipe.name}</h3>
+            <div class="card-meta">
+              <span>⏱️ ${recipe.time}分钟</span>
+              <span>📊 ${recipe.difficulty}</span>
+            </div>
+            <p class="card-description">${recipe.description}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Swipe Card
+    function swipeCard(direction) {
+      const cards = document.querySelectorAll('.recipe-card');
+      if (cards.length === 0) return;
+
+      const topCard = cards[cards.length - 1];
+      topCard.classList.add(direction === 'left' ? 'swiping-left' : 'swiping-right');
+
+      if (direction === 'right') {
+        favorites.push(currentRecipes[currentCardIndex]);
+      }
+
+      setTimeout(() => {
+        currentCardIndex++;
+        if (currentCardIndex >= currentRecipes.length) {
+          showResults();
+        } else {
+          renderCards();
+        }
+      }, 300);
+    }
+
+    // Show Results
+    function showResults() {
+      const list = document.getElementById('result-list');
+      if (favorites.length === 0) {
+        list.innerHTML = '<p style="color: #666; text-align: center;">没有收藏任何食谱</p>';
+      } else {
+        list.innerHTML = favorites.map(recipe => `
+          <div class="result-item" onclick="showDetail('${recipe.id}')">
+            <div class="result-item-icon">${recipe.emoji}</div>
+            <div class="result-item-info">
+              <h4>${recipe.name}</h4>
+              <span>⏱️ ${recipe.time}分钟 · ${recipe.difficulty}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+      showScreen('result-screen');
+    }
+
+    // Show Detail Modal
+    function showDetail(recipeId) {
+      const recipe = currentRecipes.find(r => r.id === recipeId);
+      if (!recipe) return;
+
+      document.getElementById('modal-title').textContent = recipe.name;
+      document.getElementById('modal-time').textContent = recipe.time + '分钟';
+      document.getElementById('modal-ingredients').innerHTML =
+        recipe.ingredients.map(ing => `<li>${ing}</li>`).join('');
+      document.getElementById('modal-steps').innerHTML =
+        recipe.steps.map((step, i) => `<li><span class="step-number">${i+1}</span>${step}</li>`).join('');
+
+      document.getElementById('detail-modal').classList.add('active');
+      event.stopPropagation();
+    }
+
+    // Close Modal
+    function closeModal() {
+      document.getElementById('detail-modal').classList.remove('active');
+    }
+
+    // Show Favorites
+    function showFavorites() {
+      if (favorites.length > 0) {
+        showResults();
+      } else {
+        alert('还没有收藏的食谱');
+      }
+    }
+
+    // Restart
+    function restart() {
+      const uploadArea = document.getElementById('upload-area');
+      uploadArea.innerHTML = `
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">点击上传冰箱食材照片</div>
+      `;
+      uploadArea.classList.remove('has-image');
+      document.getElementById('analyze-btn').disabled = true;
+      currentIngredients = [];
+      currentRecipes = [];
+      currentCardIndex = 0;
+      favorites = [];
+      showScreen('upload-screen');
+    }
+
+    // Close modal on outside click
+    document.getElementById('detail-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+  </script>
+</body>
+</html>

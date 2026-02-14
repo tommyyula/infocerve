@@ -1,0 +1,61 @@
+@startuml 库存移动时序图
+!theme plain
+title 库存移动时序图
+
+participant "调用方" as Caller
+participant "InventoryApplicationService" as AppService
+participant "InventoryDomainService" as DomainService
+participant "InventoryRepository" as InvRepo
+participant "LpRepository" as LpRepo
+participant "InventoryLogService" as LogService
+participant "InventoryActivityService" as ActivityService
+
+Caller -> AppService : moveInventory(command)
+activate AppService
+
+AppService -> DomainService : validateMove(command)
+activate DomainService
+
+DomainService -> InvRepo : findById(sourceInventoryId)
+activate InvRepo
+InvRepo --> DomainService : sourceInventory
+deactivate InvRepo
+
+DomainService -> DomainService : 验证源库存存在
+DomainService -> DomainService : 验证数量充足
+
+DomainService -> LpRepo : findById(targetLpId)
+activate LpRepo
+LpRepo --> DomainService : targetLp
+deactivate LpRepo
+
+DomainService -> DomainService : 验证目标LP状态\n(不能是SHIPPED/HLP)
+
+DomainService --> AppService : 验证通过
+deactivate DomainService
+
+alt 全部移动
+  AppService -> InvRepo : update(sourceInventory)
+  note right: 更新lpId/locationId/status
+else 部分移动
+  AppService -> DomainService : splitInventory(source, qty)
+  DomainService -> InvRepo : update(sourceInventory)
+  note right: 减少源库存数量
+  DomainService -> InvRepo : save(newInventory)
+  note right: 创建新库存记录
+end
+
+AppService -> LogService : recordLog(before, after)
+activate LogService
+LogService --> AppService : logId
+deactivate LogService
+
+AppService -> ActivityService : recordActivity(MOVE)
+activate ActivityService
+ActivityService --> AppService : activityId
+deactivate ActivityService
+
+AppService --> Caller : MoveResult
+deactivate AppService
+
+@enduml

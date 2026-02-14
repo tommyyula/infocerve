@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "企业微信通知",
+  "description": "Agent 停止时自动发送企业微信通知，包含对话摘要",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "powershell -ExecutionPolicy Bypass -File .kiro/scripts/notify-wecom-auto.ps1"
+  }
+}

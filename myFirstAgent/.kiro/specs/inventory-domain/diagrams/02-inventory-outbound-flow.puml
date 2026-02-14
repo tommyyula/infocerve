@@ -1,0 +1,50 @@
+@startuml 库存出库流程
+!theme plain
+title 库存出库流程
+
+|订单系统|
+start
+:创建订单;
+:调用库存锁定接口;
+
+|库存系统|
+:查询可用库存\n(status=OPEN, qty>0);
+:计算可锁定数量\n(可用库存 - 已锁定);
+:创建锁定记录\n(status=ACTIVE);
+:返回锁定结果;
+:生成拣货任务;
+
+|操作员(PDA)|
+:接收拣货任务;
+:扫描源LP;
+:扫描目标LP;
+:确认拣货;
+
+|库存系统|
+:库存移动(lpId变更);
+:更新库存状态\n(OPEN -> PICKED);
+:更新LP状态\n(IN_STOCK -> PICKED);
+:记录库存活动(PICK);
+
+|操作员(PDA)|
+:扫描LP确认打包;
+
+|库存系统|
+:更新库存状态\n(PICKED -> PACKED);
+:更新LP状态\n(PICKED -> PACKED);
+:记录库存活动(PACK);
+
+|操作员(PDA)|
+:扫描LP确认发货;
+
+|库存系统|
+:更新库存状态\n(PACKED -> SHIPPED);
+:更新LP状态\n(PACKED -> SHIPPED);
+:删除库存锁定记录;
+:记录库存活动(LOAD);
+
+|订单系统|
+:订单完成;
+stop
+
+@enduml

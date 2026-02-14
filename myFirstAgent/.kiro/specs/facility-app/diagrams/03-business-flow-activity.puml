@@ -1,0 +1,150 @@
+@startuml
+!theme cerulean
+title Facility 模块 - 活动图
+
+' ========== 设备生命周期 ==========
+|设备生命周期|
+start
+:创建设备;
+note right: 录入设备基本信息\n类型、条码、尺寸等
+
+:设备激活;
+note right: 状态变为 ACTIVE
+
+if (分配任务?) then (是)
+  :占用设备;
+  note right: occupiedBy = taskId
+  
+  :执行任务;
+  
+  if (任务完成?) then (是)
+    :释放设备;
+    note right: occupiedBy = null
+  else (否)
+    :强制释放;
+    note right: 管理员手动释放
+  endif
+else (否)
+endif
+
+if (需要维护?) then (是)
+  :设备禁用;
+  note right: 状态变为 INACTIVE
+  
+  :执行维护;
+  
+  :设备重新激活;
+else (否)
+endif
+
+if (设备报废?) then (是)
+  :删除设备;
+  stop
+else (否)
+  :继续使用;
+endif
+
+stop
+
+' ========== VLG 分配流程 ==========
+newpage VLG 分配流程
+
+|VLG 分配流程|
+start
+:创建虚拟位置组;
+note right: 定义 VLG 名称、类型
+
+:创建位置标签;
+note right: 关联物理库位
+
+:关联标签到 VLG;
+note right: tagIds 列表
+
+fork
+  :客户分配;
+  note right: 按百分比分配容量
+fork again
+  :物料关联;
+  note right: 指定物料存放区域
+fork again
+  :物料组关联;
+  note right: 按物料组分配
+fork again
+  :标题关联;
+  note right: 按标题分配
+end fork
+
+:VLG 配置完成;
+
+if (订单计划占用?) then (是)
+  :标记占用;
+  note right: occupiedBy 添加 planId
+  
+  :执行订单;
+  
+  :释放占用;
+else (否)
+endif
+
+stop
+
+' ========== 设备填充率采集 ==========
+newpage 设备填充率采集流程
+
+|填充率采集|
+start
+:扫描设备条码;
+
+:获取设备信息;
+
+:采集填充率数据;
+note right: 传感器或人工录入
+
+if (填充率有效?) then (是)
+  :记录填充率;
+  note right: 保存到历史表
+  
+  :更新设备当前填充率;
+  
+  if (溢出?) then (是)
+    :标记溢出;
+    :发送告警;
+  else (否)
+  endif
+else (否)
+  :记录异常;
+endif
+
+stop
+
+' ========== 拣选灯控制流程 ==========
+newpage 拣选灯控制流程
+
+|拣选灯控制|
+start
+:接收拣选任务;
+
+:查询目标库位;
+
+:获取关联拣选灯;
+
+if (拣选灯可用?) then (是)
+  :占用拣选灯;
+  note right: occupiedBy = workerId
+  
+  :点亮拣选灯;
+  note right: 发送指令到灯组
+  
+  :等待拣选完成;
+  
+  :熄灭拣选灯;
+  
+  :释放拣选灯;
+else (否)
+  :等待拣选灯释放;
+endif
+
+stop
+
+@enduml
+

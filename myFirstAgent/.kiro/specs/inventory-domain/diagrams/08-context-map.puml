@@ -1,0 +1,79 @@
+@startuml 限界上下文映射图
+!theme plain
+title 库存领域 - 限界上下文映射图
+
+package "库存服务限界上下文" {
+  
+  package "核心域" {
+    rectangle "库存核心上下文\n(Inventory Core)" as INV {
+      card "Inventory" as inv_entity
+      card "InventoryMove" as inv_move
+      card "InventoryStatus" as inv_status
+    }
+    
+    rectangle "LP管理上下文\n(LP Management)" as LP {
+      card "Lp" as lp_entity
+      card "LpType" as lp_type
+      card "LpStatus" as lp_status
+    }
+  }
+  
+  package "支撑域" {
+    rectangle "调整管理上下文\n(Adjustment)" as ADJ {
+      card "Adjustment" as adj_entity
+      card "AdjustmentLine" as adj_line
+      card "AdjustmentHistory" as adj_history
+    }
+    
+    rectangle "库存锁定上下文\n(Inventory Lock)" as LOCK {
+      card "InventoryLock" as lock_entity
+      card "InventoryLockStatus" as lock_status
+    }
+  }
+  
+  package "通用域" {
+    rectangle "日志审计上下文\n(Audit)" as AUDIT {
+      card "InventoryLog" as log_entity
+      card "InventoryActivity" as activity_entity
+    }
+    
+    rectangle "配置管理上下文\n(Configuration)" as CFG {
+      card "DynPropertyMapping" as dyn_mapping
+      card "CustomizeFields" as custom_fields
+      card "Sequences" as sequences
+    }
+  }
+}
+
+package "外部系统" {
+  rectangle "订单系统\n(Order)" as ORDER
+  rectangle "收货系统\n(Receive)" as RECEIVE
+  rectangle "库位系统\n(Location)" as LOCATION
+}
+
+' 上下文关系
+INV <-[#blue,thickness=2]-> LP : SK\n(Shared Kernel)
+
+INV <-[#green,thickness=2]- ADJ : U/D\n(Customer-Supplier)
+INV <-[#green,thickness=2]- LOCK : U/D\n(Customer-Supplier)
+INV -[#green,thickness=2]-> AUDIT : U/D\n(Customer-Supplier)
+LP -[#green,thickness=2]-> AUDIT : U/D\n(Customer-Supplier)
+
+INV ..[#gray]> CFG : 依赖
+LP ..[#gray]> CFG : 依赖
+ADJ ..[#gray]> CFG : 依赖
+LOCK ..[#gray]> CFG : 依赖
+
+' 外部系统关系
+ORDER -[#red,thickness=2]-> LOCK : ACL
+RECEIVE -[#red,thickness=2]-> INV : ACL
+LOCATION <.[#orange]. INV : 只读引用
+
+legend right
+  |= 关系类型 |= 说明 |
+  | SK | Shared Kernel - 共享内核 |
+  | U/D | Customer-Supplier - 上下游 |
+  | ACL | Anti-Corruption Layer - 防腐层 |
+endlegend
+
+@enduml

@@ -1,0 +1,58 @@
+@startuml 库存调整流程
+!theme plain
+title 库存调整流程
+
+|管理员(PC)|
+start
+:选择调整类型;
+note right
+  调整类型：
+  - ADD_INVENTORY (新增库存)
+  - ADJUST_QTY (调整数量)
+  - ADJUST_STATUS (调整状态)
+  - ADJUST_TITLE (调整货权)
+  - ADJUST_GOOD_TYPE (调整货物类型)
+  - ADJUST_LOT_NO (调整批次号)
+  - ADJUST_EXPIRATION_DATE (调整过期日期)
+  - ADJUST_MFG_DATE (调整生产日期)
+  - ADJUST_LP (调整LP)
+  - ADJUST_LOCATION (调整库位)
+end note
+:填写调整信息;
+:提交调整单;
+
+|系统|
+:生成调整单ID\n(ADJ-{SEQUENCE});
+:创建调整单\n(status=NEW);
+:创建调整行;
+
+|管理员(PC)|
+:审批调整单;
+
+|系统|
+:验证调整单状态\n(必须为NEW);
+
+if (状态验证通过?) then (是)
+  :遍历调整行;
+  
+  switch (调整类型)
+  case (ADD_INVENTORY)
+    :创建库存记录;
+  case (ADJUST_QTY 增加)
+    :创建库存记录;
+  case (ADJUST_QTY 减少)
+    :库存移动\n(status=ADJUSTOUT);
+  case (其他属性调整)
+    :库存移动\n(更新目标字段);
+  endswitch
+  
+  :创建调整历史记录;
+  :更新调整单状态\n(NEW -> APPROVED);
+  :发送调整审批事件;
+else (否)
+  :返回错误信息;
+endif
+
+stop
+
+@enduml

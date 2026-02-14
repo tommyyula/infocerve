@@ -1,0 +1,61 @@
+@startuml LP状态流转图
+!theme plain
+title LP状态流转图 (LP Status)
+
+[*] --> NEW : 创建LP
+
+NEW --> RECEIVING : 开始收货
+
+RECEIVING --> IN_STOCK : 收货完成/上架
+
+IN_STOCK --> PICKED : 拣货
+IN_STOCK --> STAGED : 暂存
+IN_STOCK --> ON_HOLD : 冻结
+IN_STOCK --> QUARANTINE : 隔离
+
+PICKED --> PACKED : 打包
+PICKED --> IN_STOCK : 放回
+
+STAGED --> STAGE_TO_LOAD : 待装车
+STAGED --> IN_STOCK : 取消暂存
+
+STAGE_TO_LOAD --> LOADED : 装车
+
+PACKED --> LOADED : 装车
+PACKED --> PICKED : 取消打包
+
+LOADED --> SHIPPED : 发货
+LOADED --> PACKED : 取消装车
+
+SHIPPED --> [*]
+
+ON_HOLD --> IN_STOCK : 解冻
+ON_HOLD --> SHIPPED : 异常处理后发货
+
+QUARANTINE --> IN_STOCK : 解除隔离
+QUARANTINE --> ON_HOLD : 转为冻结
+
+EXCEPTIONAL --> IN_STOCK : 异常处理
+EXCEPTIONAL --> ON_HOLD : 转为冻结
+
+note right of NEW
+  新建状态
+  LP刚创建时的初始状态
+end note
+
+note right of IN_STOCK
+  在库状态
+  正常存放在仓库中
+end note
+
+note right of QUARANTINE
+  隔离状态
+  需要质检或特殊处理
+end note
+
+note right of EXCEPTIONAL
+  异常状态
+  发生异常需要处理
+end note
+
+@enduml

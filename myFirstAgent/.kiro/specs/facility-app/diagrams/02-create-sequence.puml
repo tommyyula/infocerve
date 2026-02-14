@@ -1,0 +1,129 @@
+@startuml
+!theme cerulean
+title Facility 模块 - 时序图
+
+' ========== 设备创建流程 ==========
+newpage 设备创建流程
+
+actor "仓库管理员" as User
+participant "EquipmentController" as Ctrl
+participant "EquipmentAppService" as App
+participant "Equipment" as Domain
+participant "EquipmentRepository" as Repo
+database "MySQL" as DB
+
+User -> Ctrl : POST /equipment/create
+activate Ctrl
+
+Ctrl -> App : createEquipment(cmd)
+activate App
+
+App -> Domain : Equipment.create(cmd)
+activate Domain
+Domain -> Domain : validate()
+Domain -> Domain : generateId()
+Domain --> App : equipment
+deactivate Domain
+
+App -> Repo : save(equipment)
+activate Repo
+Repo -> DB : INSERT INTO wms_equipment
+DB --> Repo : success
+Repo --> App : void
+deactivate Repo
+
+App -> App : publishEvent(EquipmentCreatedEvent)
+App --> Ctrl : void
+deactivate App
+
+Ctrl --> User : R.ok()
+deactivate Ctrl
+
+' ========== VLG 分配流程 ==========
+newpage VLG 客户分配流程
+
+actor "仓库管理员" as User2
+participant "VLGController" as Ctrl2
+participant "VLGAppService" as App2
+participant "VirtualLocationGroup" as VLG
+participant "CustomerVlgAllocation" as CVA
+participant "VLGRepository" as Repo2
+database "MySQL" as DB2
+
+User2 -> Ctrl2 : POST /location/customer-vlg-allocation
+activate Ctrl2
+
+Ctrl2 -> App2 : createAllocation(cmd)
+activate App2
+
+App2 -> Repo2 : findById(vlgId)
+activate Repo2
+Repo2 -> DB2 : SELECT FROM wms_virtual_location_group
+DB2 --> Repo2 : vlg data
+Repo2 --> App2 : vlg
+deactivate Repo2
+
+App2 -> VLG : validateAllocation(customerId, percentage)
+activate VLG
+VLG -> VLG : checkPercentageLimit()
+VLG --> App2 : valid
+deactivate VLG
+
+App2 -> CVA : CustomerVlgAllocation.create(cmd)
+activate CVA
+CVA --> App2 : allocation
+deactivate CVA
+
+App2 -> Repo2 : saveAllocation(allocation)
+activate Repo2
+Repo2 -> DB2 : INSERT INTO wms_customer_vlg_allocation
+DB2 --> Repo2 : success
+Repo2 --> App2 : allocationId
+deactivate Repo2
+
+App2 --> Ctrl2 : allocationId
+deactivate App2
+
+Ctrl2 --> User2 : R.ok(allocationId)
+deactivate Ctrl2
+
+' ========== 拣选灯创建流程 ==========
+newpage 拣选灯创建流程
+
+actor "仓库管理员" as User3
+participant "PickToLightController" as Ctrl3
+participant "PickToLightAppService" as App3
+participant "PickToLight" as PTL
+participant "PickToLightRepository" as Repo3
+database "MySQL" as DB3
+
+User3 -> Ctrl3 : POST /pick-to-light/create
+activate Ctrl3
+
+Ctrl3 -> App3 : createPickToLight(cmd)
+activate App3
+
+App3 -> App3 : validateLocation(locationId)
+App3 -> App3 : validateGroup(groupId)
+
+App3 -> PTL : PickToLight.create(cmd)
+activate PTL
+PTL -> PTL : validate()
+PTL --> App3 : pickToLight
+deactivate PTL
+
+App3 -> Repo3 : save(pickToLight)
+activate Repo3
+Repo3 -> DB3 : INSERT INTO def_pick_to_light
+DB3 --> Repo3 : success
+Repo3 --> App3 : id
+deactivate Repo3
+
+App3 --> Ctrl3 : id
+deactivate App3
+
+Ctrl3 --> User3 : R.ok(id)
+deactivate Ctrl3
+
+@enduml
+
